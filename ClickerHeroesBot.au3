@@ -491,7 +491,7 @@ Func findHero($pos)
 			$loopDown = $loopDown + 1
 			$loopOverall = $loopDown + 1
 			If $loopDown > 30 Then
-			   Msgbox(0,"Test","We likely shouldnt be here")
+			   ;Msgbox(0,"Test","We likely shouldnt be here")
 			   WinActivate("Clicker Heroes")
 			   MouseWheel("down",10)
 			   Sleep(100)
@@ -557,7 +557,7 @@ Func findHero($pos)
 			$loopDown = $loopDown + 1
 			$loopOverall = $loopDown + 1
 			If $loopDown > 30 Then
-			   Msgbox(0,"Test","We likely shouldnt be here and Hero is: "  & $arrHeroes[$pos][0])
+			   _GUICtrlEdit_AppendText($editctrl,"Cant find Hero, back to the top: " & $arrHeroes[$pos][0] & @CRLF)
 			   WinActivate("Clicker Heroes")
 			   MouseWheel("up",30)
 			   $loopDown = 0
@@ -941,7 +941,7 @@ do
    EndIf
    ;If we dont have Cid its a New Game so Stop!
    If ($arrHeroes[0][1]= 0) Then
-	  Msgbox(0,"Derp","	at?")
+	  Msgbox(0,"","Cant find Cid, need to replace image.")
 	  Exit
    EndIf
 
