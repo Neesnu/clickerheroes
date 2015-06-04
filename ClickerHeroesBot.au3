@@ -100,17 +100,18 @@ showAll()
 Func setHero()
    _GUICtrlEdit_AppendText($editctrl,"setHero")
    ;Set to CurHero
-   $curHero=11
+   $curHero=4
    ;Cid
-   $arrHeroes[0][1]= 100
+   $arrHeroes[0][1]= 10
    ;Tree
-   $arrHeroes[1][1]= 100
+   $arrHeroes[1][1]= 10
    ;Ivan
-   $arrHeroes[2][1]= 100
+   $arrHeroes[2][1]= 10
    ;Brittany
    $arrHeroes[3][1]= 10
    ;Fisherman
-   $arrHeroes[4][1]= 10
+   $arrHeroes[4][1]= 5
+   #comments-start
    ;Betty
    $arrHeroes[5][1]= 10
    ;Samurai
@@ -123,7 +124,7 @@ Func setHero()
    $arrHeroes[9][1]= 10
    ;Natalia
    $arrHeroes[10][1]= 10
-      #comments-start
+
    ;Mercedes
    $arrHeroes[11][1]= 100
    ;Bobby
@@ -646,6 +647,7 @@ Func hireLevel($pos)
 						MouseWheel("up")
 						Sleep(200)
 						MouseWheel("down",2)
+						Sleep(200)
 						clickUpgadeBox()
 					 Else
 						clickUpgadeBox()
@@ -706,7 +708,8 @@ Func forceBuyUpgrade()
 EndFunc
 ; Clicks the buy available upgrades box
 Func clickUpgadeBox()
-
+   MouseMove( $left, $top )
+   Sleep(300)
    $result = _ImageSearch("images/buyAvailableUpgrades.jpg",1,$x1, $y1,85)
    If $result = 1 Then
 		 MouseClick("left",$x1,$y1,1,5)
