@@ -929,17 +929,24 @@ do
    If ($arrHeroes[0][1]= 0) Then
 	  $result = _ImageSearchArea("images/heroes/normal/cid.png", 1, $left, $top, $right, $bottom, $x1, $y1, 60)
 	  If $result = 1 Then
+		 _GUICtrlEdit_AppendText($editctrl,"Found Cid Image" & @CRLF)
 		 $result = _ImageSearchArea("images/Hire.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 120)
 		 If $result = 1 Then
+			_GUICtrlEdit_AppendText($editctrl,"Found Cid Hire Image" & @CRLF)
 			newGame()
 		 Else
+			_GUICtrlEdit_AppendText($editctrl,"Didnt find Cid Hire Image" & @CRLF)
 			$result = _ImageSearchArea("images/hire2.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 120)
 			If $result = 1 Then
+			   _GUICtrlEdit_AppendText($editctrl,"Found Cid Hire2 Image" & @CRLF)
 			   newGame()
 			Else
+			   _GUICtrlEdit_AppendText($editctrl,"Didnt find Cid Hire2 Image" & @CRLF)
 			   $arrHeroes[0][1]= 1
 			EndIf
 		 EndIf
+	  Else
+		 _GUICtrlEdit_AppendText($editctrl,"Cant find cid.png on the screen" & @CRLF)
 	  EndIf
    EndIf
    ;If we dont have Cid its a New Game so Stop!
