@@ -279,6 +279,11 @@ Func runBot()
 		 levelUp()
 	  EndIf
 
+	  ; Find the fish!
+	  If Mod($timeMain,3) = 0 Then
+		 findFish()
+	  EndIf
+
 	  $timeMain = $timeMain + 1
 
 	  ; A delay can be introduced into the tick so that everything will run slower
@@ -306,11 +311,22 @@ Func checkFarmState()
 	  ;MouseClick("left", $right - 20, $bottom / 2.65 + 20,1,5)
 	  Local $retCode = WinActivate("Clicker Heroes")
 	  If $retCode <> 0 Then
-		 Send ("{A}")
+		 ControlSend ("Clicker Heroes","","","{A}")
 	  EndIf
    EndIf
 EndFunc
 
+Func findFish()
+   ;Fish Find
+   $result = _ImageSearchArea("images/fish.png", 1, $left, $top, $right, $bottom, $x1, $y1, 120)
+	  If $result = 1 Then
+		 ;MouseClick("left",$x1,$y1)
+		 WinActivate("Clicker Heroes")
+		 ControlClick("Clicker Heroes","", "", "Left",1,$x1,$y1)
+		 Sleep(300)
+		  _GUICtrlEdit_AppendText($editctrl2,"Fish Found!" & @CRLF)
+	  EndIf
+EndFunc
 ; Levels up a character if the gilded button is on screen
 Func levelUp()
    _GUICtrlEdit_AppendText($editctrl,"levelUp Case " & $curHero & @CRLF)
@@ -324,9 +340,11 @@ Func levelUp()
 	  If $result = 1 Then
 		 $result = _ImageSearchArea("images/level.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 120)
 		 If $result = 1 Then
-			MouseClick("left",$x2,$y2)
+			;MouseClick("left",$x2,$y2)
+			WinActivate("Clicker Heroes")
+			ControlClick("Clicker Heroes","", "", "Left",1,$x2,$y2)
 			$arrHeroes[0][1]= $arrHeroes[0][1] + 1
-			MouseMove($x1,$y1)
+			;MouseMove($x1,$y1)
 			If $arrHeroes[0][1] >= 10 Then
 			   $curHero = 1
 			EndIf
@@ -338,9 +356,11 @@ Func levelUp()
 	  If $result = 1 Then
 		 $result = _ImageSearchArea("images/level.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 120)
 		 If $result = 1 Then
-			MouseClick("left",$x2,$y2)
+			;MouseClick("left",$x2,$y2)
+			WinActivate("Clicker Heroes")
+			ControlClick("Clicker Heroes","", "", "Left",1,$x2,$y2)
 			$arrHeroes[1][1]= $arrHeroes[1][1] + 1
-			MouseMove($x1,$y1)
+			;MouseMove($x1,$y1)
 			If $arrHeroes[1][1] >= 10 Then
 			   $curHero = 2
 			EndIf
@@ -587,7 +607,7 @@ Func hireLevel($pos)
 			Local $result1, $result2, $result3, $result4, $downOnce=0
 			_GUICtrlEdit_AppendText($editctrl,"Found Normal Image: " & $arrHeroes[$pos][0] & @CRLF)
 			Do
-			   MouseMove($x1,$y1)
+			   ;MouseMove($x1,$y1)
 			   Sleep(100)
 			   $result1 = _ImageSearchArea("images/hire2.png", 1, $left, $y1-50, $x1, $y1 + 100, $x2, $y2, 60)
 			   Sleep(100)
@@ -603,7 +623,9 @@ Func hireLevel($pos)
 				  ExitLoop
 			   ElseIf $result1 = 1 Then
 				  _GUICtrlEdit_AppendText($editctrl,"About to Hire Image: " & $arrHeroes[$pos][0] & @CRLF)
-				  MouseClick("left",$x2,$y2)
+				  ;MouseClick("left",$x2,$y2)
+				  WinActivate("Clicker Heroes")
+				  ControlClick("Clicker Heroes","", "", "Left",1,$x2,$y2)
 				  $arrHeroes[$pos][1]= 1
 				  Sleep(100)
 			   ElseIf $result2 = 1 Then
@@ -636,7 +658,9 @@ Func hireLevel($pos)
 			If $result = 1 Then
 			   $result = _ImageSearchArea("images/level.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 120)
 			   If $result = 1 Then
-				  MouseClick("left",$x2,$y2)
+				  ;MouseClick("left",$x2,$y2)
+				  WinActivate("Clicker Heroes")
+				  ControlClick("Clicker Heroes","", "", "Left",1,$x2,$y2)
 				  $arrHeroes[$pos][1]= $arrHeroes[$pos][1] + 1
 				  If $pos = 25 and ($arrHeroes[$pos][1] = 5 or $arrHeroes[$pos][1] = 20 or $arrHeroes[$pos][1] = 40 or $arrHeroes[$pos][1] = 60 or $arrHeroes[$pos][1] = 70) Then
 						checkFarmState()
@@ -654,7 +678,7 @@ Func hireLevel($pos)
 					 EndIf
 					 checkFarmState()
 				  EndIf
-				  MouseMove($x1,$y1)
+				 ;MouseMove($x1,$y1)
 			   EndIf
 			   If $arrHeroes[$pos][1] >= $arrHeroes[$pos][2]  Then
 				  _GUICtrlEdit_AppendText($editctrl,"Levelup Complete for hero " & $arrHeroes[$pos][0] & @CRLF)
@@ -708,11 +732,13 @@ Func forceBuyUpgrade()
 EndFunc
 ; Clicks the buy available upgrades box
 Func clickUpgadeBox()
-   MouseMove( $left, $top )
+   ;MouseMove( $left, $top )
    Sleep(300)
    $result = _ImageSearch("images/buyAvailableUpgrades.jpg",1,$x1, $y1,85)
    If $result = 1 Then
-		 MouseClick("left",$x1,$y1,1,5)
+		;MouseClick("left",$x1,$y1,1,5)
+		 WinActivate("Clicker Heroes")
+		 ControlClick("Clicker Heroes","", "", "Left",1,$x1,$y1)
    EndIf
 EndFunc
 
@@ -740,14 +766,17 @@ Func levelUp100()
 			$result = _ImageSearchArea("images/heroes/normal/" & $arrHeroes[$i][0], 1, $left, $top, $right, $bottom, $x1, $y1, 60)
 			If $result = 1 Then
 			   WinActivate("Clicker Heroes")
-			   Send("{Z DOWN}")
+			   Sleep(100)
+			   ControlSend ("Clicker Heroes","","","{Z DOWN}")
 			   Sleep(100)
 			   $result = _ImageSearchArea("images/level25.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 120)
 
 			   If $result = 1 Then
-				  MouseClick("left",$x2,$y2)
+				  ;MouseClick("left",$x2,$y2)
+				  WinActivate("Clicker Heroes")
+				  ControlClick("Clicker Heroes","", "", "Left",1,$x2,$y2)
 				  $arrHeroes[$i][1]= $arrHeroes[$i][1] + 25
-				  MouseMove($x1,$y1)
+				  ;MouseMove($x1,$y1)
 			   Else
 				  If $loopOnce = 1 Then
 					 WinActivate("Clicker Heroes")
@@ -761,7 +790,7 @@ Func levelUp100()
 					 $loopOnce = 1
 				  EndIf
 			   EndIf
-			   Send("{Z UP}")
+			   ControlSend ("Clicker Heroes","","","{Z UP}")
 			EndIf
 		 Until ($arrHeroes[$i][1] >= 100)
 		 _GUICtrlEdit_AppendText($editctrl,"Leveling to 100 Complete for " & $arrHeroes[$i][0] & @CRLF)
@@ -796,13 +825,15 @@ Func levelUpBulk()
 			$result = _ImageSearchArea("images/heroes/normal/" & $arrHeroes[$i][0], 1, $left, $top, $right, $bottom, $x1, $y1, 60)
 			If $result = 1 Then
 			   WinActivate("Clicker Heroes")
-			   Send("{CTRLDOWN}")
+			   ControlSend ("Clicker Heroes","","","{CTRLDOWN}")
 			   Sleep(100)
 			   $result = _ImageSearchArea("images/level100.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 120)
 			   If $result = 1 Then
-				  MouseClick("left",$x2,$y2)
+				  ;MouseClick("left",$x2,$y2)
+				  WinActivate("Clicker Heroes")
+				  ControlClick("Clicker Heroes","", "", "Left",1,$x2,$y2)
 				  $arrHeroes[$i][1]= $arrHeroes[$i][1] + 100
-				  MouseMove($x1,$y1)
+				  ;MouseMove($x1,$y1)
 			   Else
 				  If $loopOnce = 1 Then
 					 WinActivate("Clicker Heroes")
@@ -816,7 +847,7 @@ Func levelUpBulk()
 				  EndIf
 			   EndIf
 
-			   Send("{CTRLUP}")
+			   ControlSend ("Clicker Heroes","","","{CTRLUP}")
 			EndIf
 		 Until ($arrHeroes[$i][1] >= $arrHeroes[$i][3])
 	  EndIf
@@ -828,7 +859,7 @@ EndFunc
 
 ; Finds and clicks the ascend button to restart
 Func Ascend()
-
+   _GUICtrlEdit_AppendText($editctrl,"Trying to Ascend" & @CRLF)
    ;Move Up and Wait
    WinActivate("Clicker Heroes")
    MouseWheel("up",10)
@@ -837,10 +868,13 @@ Func Ascend()
    ;Find Amen
    findHero(19)
 
+   _GUICtrlEdit_AppendText($editctrl,"Found Amen" & @CRLF)
    MouseWheel("down")
    Sleep(500)
    $result =  _ImageSearchArea("images/ascend.bmp", 1, $left, $top, $right, $bottom, $x1, $y1, 120)
    If $result = 1 Then
+      _GUICtrlEdit_AppendText($editctrl,"Found Ascend" & @CRLF)
+      WinActivate("Clicker Heroes")
 	  MouseClick("left",$x1,$y1)
 	  Sleep(500)
 	  $result = _ImageSearchArea("images/ascendYes.png", 1, $left, $top, $right, $bottom, $x1, $y1, 120)
@@ -853,7 +887,11 @@ Func Ascend()
 		 newGame()
 
 		 runBot()
+	  Else
+		_GUICtrlEdit_AppendText($editctrl,"Didnt Find Ascend Yes Button" & @CRLF)
 	  EndIf
+   Else
+		_GUICtrlEdit_AppendText($editctrl,"Didnt Find Ascend" & @CRLF)
    EndIf
 
 EndFunc
@@ -875,7 +913,8 @@ Func newGame()
 	  ; Extra clicks happen at the beginning to makes sure that a hero can be found when the ticks start again
 	  WinActivate("Clicker Heroes")
 	  For $clicks = 0 To 100 Step 1
-		 MouseClick("left",$left + ($right / 1.2 ), $top + (($bottom - $top) / 2))
+		 ;MouseClickMouseClick("left",$left + ($right / 1.2 ), $top + (($bottom - $top) / 2))
+		 ControlClick("Clicker Heroes","", "", "Left",1,$left + ($right / 1.2 ), $top + (($bottom - $top) / 2))
 	  Next
 
 	  ;Attempt to Hire Cid
@@ -883,7 +922,9 @@ Func newGame()
 	  If $result = 1 Then
 		 $result = _ImageSearchArea("images/hire2.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 120)
 		 If $result = 1 Then
-			MouseClick("left",$x2,$y2)
+			;MouseClick("left",$x2,$y2)
+			WinActivate("Clicker Heroes")
+			ControlClick("Clicker Heroes","", "", "Left",1,$x2,$y2)
 			$arrHeroes[0][1]= 1
 		 EndIf
 	  EndIf
@@ -892,7 +933,9 @@ Func newGame()
 	  If $result = 1 Then
 		 $result = _ImageSearchArea("images/hire2.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 120)
 		 If $result = 1 Then
-			MouseClick("left",$x2,$y2)
+			;MouseClick("left",$x2,$y2)
+			WinActivate("Clicker Heroes")
+			ControlClick("Clicker Heroes","", "", "Left",1,$x2,$y2)
 			$arrHeroes[1][1]= 1
 		 EndIf
 	  EndIf
@@ -1148,7 +1191,7 @@ EndFunc
 
 ; Auxiliary functions for pausing the script, exiting and keeping it running while there is no activity
 Func pause()
-   Send("{CTRLUP}")
+   ControlSend ("Clicker Heroes","","","{CTRLUP}")
    While ($i = 0)
 	  Sleep(100)
    WEnd
