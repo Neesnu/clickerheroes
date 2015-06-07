@@ -305,7 +305,7 @@ EndFunc
 
 ; Checks that the farm state is still turned on
 Func checkFarmState()
-   Local $aCoord = PixelSearch($right - 40, $bottom / 2.65 , $right, $bottom / 2.65 + 40, 0xFF0000)
+   Local $aCoord = PixelSearch($right - ($right/36), $bottom / 2.65 , $right, $bottom / 2.65 + ($right/36), 0xFF0000)
    if @error = 0 Then
 	  ;MsgBox( 0, "checkFarmState", "Success!")
 	  ;MouseClick("left", $right - 20, $bottom / 2.65 + 20,1,5)
@@ -338,7 +338,7 @@ Func levelUp()
 	  ;Attempt to Level Cid
 	  $result = _ImageSearchArea("images/heroes/normal/" & $arrHeroes[0][0], 1, $left, $top, $right, $bottom, $x1, $y1, 60)
 	  If $result = 1 Then
-		 $result = _ImageSearchArea("images/level.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 120)
+		 $result = _ImageSearchArea("images/level.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 120)
 		 If $result = 1 Then
 			;MouseClick("left",$x2,$y2)
 			WinActivate("Clicker Heroes")
@@ -354,7 +354,7 @@ Func levelUp()
 	  ;Attempt to Level Treebeast
 	  $result = _ImageSearchArea("images/heroes/normal/" & $arrHeroes[1][0], 1, $left, $top, $right, $bottom, $x1, $y1, 60)
 	  If $result = 1 Then
-		 $result = _ImageSearchArea("images/level.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 120)
+		 $result = _ImageSearchArea("images/level.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 120)
 		 If $result = 1 Then
 			;MouseClick("left",$x2,$y2)
 			WinActivate("Clicker Heroes")
@@ -491,10 +491,10 @@ Func findHero($pos)
 		 If $result = 1 Then
 			Local $result1, $result2, $result3, $result4
 			Do
-			   $result1 = _ImageSearchArea("images/hire2.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 60)
-			   $result2 = _ImageSearchArea("images/hire.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 60)
-			   $result3 = _ImageSearchArea("images/level.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 60)
-			   $result4 = _ImageSearchArea("images/level2.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 60)
+			   $result1 = _ImageSearchArea("images/hire2.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 60)
+			   $result2 = _ImageSearchArea("images/hire.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 60)
+			   $result3 = _ImageSearchArea("images/level.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 60)
+			   $result4 = _ImageSearchArea("images/level2.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 60)
 			   If $result1 = 1 or $result2 = 1 or $result3 = 1 or $result4 = 1 Then
 				  _GUICtrlEdit_AppendText($editctrl,"Hero Found: " & $arrHeroes[$pos][0] & " Results " & $result1 & "|" & $result2 & "|" & $result3 & "|" & $result4 & @CRLF)
 				  $foundButton = 1
@@ -538,13 +538,13 @@ Func findHero($pos)
 			EndIf
 			Local $result1, $result2, $result3, $result4, $doOnce = 0
 			Do
-			   $result1 = _ImageSearchArea("images/hire2.png", 1, $left, $y1-50, $x1, $y1 + 100, $x2, $y2,60)
+			   $result1 = _ImageSearchArea("images/hire2.png", 1, $left, $y1-($bottom/18), $x1, $y1 + ($bottom/9), $x2, $y2,60)
 			   Sleep(100)
-			   $result2 = _ImageSearchArea("images/hire.png", 1, $left, $y1-50, $x1, $y1 + 100, $x2, $y2, 60)
+			   $result2 = _ImageSearchArea("images/hire.png", 1, $left, $y1-($bottom/18), $x1, $y1 + ($bottom/9), $x2, $y2, 60)
 			   Sleep(100)
-			   $result3 = _ImageSearchArea("images/level.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 60)
+			   $result3 = _ImageSearchArea("images/level.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 60)
 			   Sleep(100)
-			   $result4 = _ImageSearchArea("images/level2.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 60)
+			   $result4 = _ImageSearchArea("images/level2.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 60)
 
 			   If $result1 = 1 or $result2 = 1 or $result3 = 1 or $result4 = 1 Then
 				  _GUICtrlEdit_AppendText($editctrl,"Hero Found: " & $arrHeroes[$pos][0] & " Results " & $result1 & "|" & $result2 & "|" & $result3 & "|" & $result4 & @CRLF)
@@ -609,13 +609,13 @@ Func hireLevel($pos)
 			Do
 			   ;MouseMove($x1,$y1)
 			   Sleep(100)
-			   $result1 = _ImageSearchArea("images/hire2.png", 1, $left, $y1-50, $x1, $y1 + 100, $x2, $y2, 60)
+			   $result1 = _ImageSearchArea("images/hire2.png", 1, $left, $y1-($bottom/18), $x1, $y1 + ($bottom/9), $x2, $y2, 60)
 			   Sleep(100)
-			   $result2 = _ImageSearchArea("images/hire.png", 1, $left, $y1-50, $x1, $y1 + 100, $x2, $y2, 60)
+			   $result2 = _ImageSearchArea("images/hire.png", 1, $left, $y1-($bottom/18), $x1, $y1 + ($bottom/9), $x2, $y2, 60)
 			   Sleep(100)
-			   $result3 = _ImageSearchArea("images/level.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 60)
+			   $result3 = _ImageSearchArea("images/level.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 60)
 			   Sleep(100)
-			   $result4 = _ImageSearchArea("images/level2.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 60)
+			   $result4 = _ImageSearchArea("images/level2.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 60)
 
 			   If $result3 = 1 or $result4 = 1 Then
 				  _GUICtrlEdit_AppendText($editctrl,"Hero is already leveled" & @CRLF)
@@ -656,7 +656,7 @@ Func hireLevel($pos)
 		 Do
 			$result = _ImageSearchArea("images/heroes/normal/" & $arrHeroes[$pos][0], 1, $left, $top, $right, $bottom, $x1, $y1, 60)
 			If $result = 1 Then
-			   $result = _ImageSearchArea("images/level.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 120)
+			   $result = _ImageSearchArea("images/level.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 120)
 			   If $result = 1 Then
 				  ;MouseClick("left",$x2,$y2)
 				  WinActivate("Clicker Heroes")
@@ -769,7 +769,7 @@ Func levelUp100()
 			   Sleep(100)
 			   ControlSend ("Clicker Heroes","","","{Z DOWN}")
 			   Sleep(100)
-			   $result = _ImageSearchArea("images/level25.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 120)
+			   $result = _ImageSearchArea("images/level25.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 120)
 
 			   If $result = 1 Then
 				  ;MouseClick("left",$x2,$y2)
@@ -827,7 +827,7 @@ Func levelUpBulk()
 			   WinActivate("Clicker Heroes")
 			   ControlSend ("Clicker Heroes","","","{CTRLDOWN}")
 			   Sleep(100)
-			   $result = _ImageSearchArea("images/level100.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 120)
+			   $result = _ImageSearchArea("images/level100.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 120)
 			   If $result = 1 Then
 				  ;MouseClick("left",$x2,$y2)
 				  WinActivate("Clicker Heroes")
@@ -920,7 +920,7 @@ Func newGame()
 	  ;Attempt to Hire Cid
 	  $result = _ImageSearchArea("images/heroes/normal/cid.png", 1, $left, $top, $right, $bottom, $x1, $y1, 60)
 	  If $result = 1 Then
-		 $result = _ImageSearchArea("images/hire2.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 120)
+		 $result = _ImageSearchArea("images/hire2.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 120)
 		 If $result = 1 Then
 			;MouseClick("left",$x2,$y2)
 			WinActivate("Clicker Heroes")
@@ -931,7 +931,7 @@ Func newGame()
 	  ;Attempt to Hire Treebeast
 	  $result = _ImageSearchArea("images/heroes/normal/tree.png", 1, $left, $top, $right, $bottom, $x1, $y1, 60)
 	  If $result = 1 Then
-		 $result = _ImageSearchArea("images/hire2.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 120)
+		 $result = _ImageSearchArea("images/hire2.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 120)
 		 If $result = 1 Then
 			;MouseClick("left",$x2,$y2)
 			WinActivate("Clicker Heroes")
@@ -947,12 +947,12 @@ Func checkHero($pos)
    If ($arrHeroes[$pos][1]= 0) Then
 	  $result = _ImageSearchArea("images/heroes/normal/" & $arrHeroes[$pos][0], 1, $left, $top, $right, $bottom, $x1, $y1, 60)
 	  If $result = 1 Then
-		 $result = _ImageSearchArea("images/level.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 120)
+		 $result = _ImageSearchArea("images/level.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 120)
 		 If $result = 1 and $pos <> 25 Then
 			$arrHeroes[$pos][1]= 1
 			$curHero = $pos + 1
 		 EndIf
-		 $result = _ImageSearchArea("images/level2.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 120)
+		 $result = _ImageSearchArea("images/level2.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 120)
 		 If $result = 1 and $pos <> 25 Then
 			$arrHeroes[$pos][1]= 1
 			$curHero = $pos + 1
@@ -973,13 +973,13 @@ do
 	  $result = _ImageSearchArea("images/heroes/normal/cid.png", 1, $left, $top, $right, $bottom, $x1, $y1, 60)
 	  If $result = 1 Then
 		 _GUICtrlEdit_AppendText($editctrl,"Found Cid Image" & @CRLF)
-		 $result = _ImageSearchArea("images/Hire.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 120)
+		 $result = _ImageSearchArea("images/Hire.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 120)
 		 If $result = 1 Then
 			_GUICtrlEdit_AppendText($editctrl,"Found Cid Hire Image" & @CRLF)
 			newGame()
 		 Else
 			_GUICtrlEdit_AppendText($editctrl,"Didnt find Cid Hire Image" & @CRLF)
-			$result = _ImageSearchArea("images/hire2.png", 1, $left, $y1, $x1, $y1 + 100, $x2, $y2, 120)
+			$result = _ImageSearchArea("images/hire2.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 120)
 			If $result = 1 Then
 			   _GUICtrlEdit_AppendText($editctrl,"Found Cid Hire2 Image" & @CRLF)
 			   newGame()
