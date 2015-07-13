@@ -1,4 +1,5 @@
 #include <ImageSearch.au3>
+#include <NomadMemory.au3>
 #include <Misc.au3>
 #include <Array.au3> ; Required for _ArrayDisplay.
 #include <GUIConstantsEx.au3>
@@ -37,19 +38,15 @@ HotKeySet("{F8}","runBot")
 HotKeySet("{F9}","pause")
 HotKeySet("{F10}","end")
 
-; Extra HotKeys
-HotKeySet("{~}", "showAll")
-HotKeySet("{!}", "checkFarmState")
-HotKeySet("{@}", "levelUpBulk")
-HotKeySet("{#}", "setTHLReached")
-HotKeySet("{$}", "setAscendBaseReached")
-HotKeySet("{%}", "checkHeroSouls")
-HotKeySet("{^}", "Ascend")
 
 ; Makes sure that only one copy of this program can be running at once.
 If _Singleton("ClickerHeroesBot", -1) = 0 Then
    Exit
 EndIf
+
+$ID=_MemoryOpen(WinGetProcess("Clicker Heroes"))
+$goldAddress=0x0D8489E8
+$scrollAddress=0x0B4BD63C
 
 Global $timeMain = 0
 Global $i = 0
@@ -59,118 +56,306 @@ Global $left=0
 Global $top=0
 Global $right=0
 Global $bottom=0
+Global $width=0
+Global $height=0
+Global $gold = 0
+Global $lastProgressToggle = _Date_Time_GetTickCount ( )
+Global $hiringReduction = .5
+Global $argaivLevel = 56
+$wtit = 0
+$border = 0
+$scrollPos = 0
+$scrollAmount = 80
+$heroHeight = 148.75
+$upgradeHeight = 470
+$heroBoxHeight = 469
 
 $x1=0
 $y1=0
 $x2=0
 $y2=0
 
+$HeroX = 0
+$HeroY = 0
+$lastHero = 0
+$status1 = 0
+$status2 = 0
+$status3 = 0
+$status4 = 0
 Global $ascendBaseReached = False
+$handle = WinGetHandle("Clicker Heroes", "")
+Global $mostGold = 0
 
-$Form1 = GUICreate("Logs", 550, 350)
-Global $editctrl = GUICtrlCreateEdit("", 10, 10, 200, 330)
-Global $editctrl2 = GUICtrlCreateEdit("", 250, 10, 200, 330)
+$Form1 = GUICreate("Logs", 1000, 700)
+Global $editctrl = GUICtrlCreateEdit("", 10, 10, 450, 680)
+Global $editctrl2 = GUICtrlCreateEdit("", 500, 10, 450, 680)
 GUICtrlSetLimit($editctrl,10000000)
 GUICtrlSetLimit($editctrl2,10000000)
 
+Const $SM_CYCAPTION = 4
+Const $SM_CXFIXEDFRAME = 7
+$nextHero = 1
+$wtit = 31
+$border = 8
+$downX = 0
+$downY = 0
+$upX = 0
+$upY = 0
+$scrollTop = 0
+$scrollBottom = 0
+$scrollDelta = 0
+$thousand= 1000 ; 3
+$million = $thousand * $thousand ; 6
+$billion = $thousand * $million ;9
+$trillion = $billion * $thousand ;12
+$q = $trillion * $thousand ; 15
+$Q = $q * $thousand ;18
+$s = $Q * $thousand ;21
+$S = $s * $thousand ;24
+$U = $S * $trillion;36
+$e51 = $U * $q ; 51
+$e70 = $e51 * $Q * 10  ;70 = 51 + 18 + 1
+$e85= $e70 * $q ; 85
+$e100 = $e85 * $q
+$e115 = $e100 * $q
+$e130= $e115 * $q
+$e145 = $e130 * $q
+$e160= $e145 * $q
+
+
 GUISetState(@SW_SHOW)
 
-;Global $arrHeroes[26]=[DllStructCreate("dword HeroName;wchar Token[100]"),DllStructCreate("dword HeroLevel;wchar Token[100]"),]
-Global $arrHeroes[30][4]= _
-		[ _
-		["cid.png",0,10,900],["tree.png",0,10,900],["ivan.png",0,10,900], _
-		["brittany.png",0,10,800],["fish.png",0,10,800], ["betty.png",0,10,800], _
-		["samurai.png",0,10,700], ["leon.png",0,10,700], ["forest.png",0,10,700], _
-		["alexa.png", 0,10,700], ["natalia.png",0,10,700], ["mercedes.png",0,10,600], _
-		["bobby.png", 0,10,600], ["broyle.png",0,10,600], ["george.png",0,10,600], _
-		["king.png",0,25,500], ["jerator.png",0,25,500], ["abaddon.png",0,25,500], _
-		["zhu.png",0,25,400], ["amen.png",0,25,400], ["beast.png",0,25,400], _
-		["athena.png",0,25,300], ["aphrodite.png",0,25,200], ["shinatobe.png",0,25,100], _
-		["grant.png",0,25,100], ["frostleaf.png",0,100,100], ["temp.png",0,0,0], _
-		["temp.png",0,0,0], ["temp.png",0,0,0], ["temp.png",0,0,0] _
-		]
+   ;Image,		CurrentLevel, 	BaseCost, LevelsToAdd, BaseDamage, 		Gilds, 		PersonalUpgrade, DPSupgradeHolder
+Global $arrHeroes[35][8]= _
+[ _
+   ["cid.png",			0,		5,			0,			0,					0,			210			,0], _
+   ["tree.png",			0,		50,			0,			5,					0,			20			,0], _
+   ["ivan.png",			0,		250,		0,			22,					0,			20			,0], _
+   ["brittany.png",		0,		1e3,		0,			74,					0,			20			,0], _
+   ["fish.png",			0,		4e3,		0,			245,				0,			8			,0], _
+   ["betty.png",		0,		2e4,		0,			976,				0,			1			,0], _
+   ["samurai.png",		0,		1e5,		0,			3725,				104,		20			,0], _
+   ["leon.png",			0,		4e5,		0,			10859,				0,			8			,0], _
+   ["forest.png",		0,		2.5e6,		0,			47143,				0,			20			,0], _
+   ["alexa.png", 		0,		1.5e7,		0,			1.86e5,				0,			5.0625		,0], _
+   ["natalia.png",		0,		1e8,		0,			7.82e5,				0,			20			,0], _
+   ["mercedes.png",		0,		8e8,		0,			3.721e6,			0,			20			,0], _
+   ["bobby.png", 		0,		6.5e9,		0,			1.701e7,			0,			20			,0], _
+   ["broyle.png",		0,		5e10,		0,			6.9064e7,			0,			10			,0], _
+   ["george.png",		0,		4.5e11,		0,			4.6e8,				0,			20			,0], _
+   ["king.png",			0,		4e12,		0,			3.017e9,			0,			1			,0], _
+   ["jerator.png",		0,		3.6e13,		0,			2.0009e10,			0,			20			,0], _
+   ["abaddon.png",		0,		3.2e14,		0,			1.31e11,			0,			11.390625	,0], _
+   ["zhu.png",			0,		2.7e15,		0,			8.14e11,			0,			20			,0], _
+   ["amen.png",			0,		2.4e16,		0,			5.335e12,			0,			2			,0], _
+   ["beast.png",		0,		3e17,		0,			4.9143e13,			0,			8			,0], _
+   ["athena.png",		0,		9e18,		0,			1.086e15,			0,			16			,0], _
+   ["aphrodite.png",	0,		3.5e20,		0,			3.1124e16,			0,			16			,0], _
+   ["shinatobe.png",	0,		1.4e22,		0,			9.17e17,			0,			8			,0], _
+   ["grant.png",		0,		4.199e24,	0,			2.02e20,			0,			4			,0], _
+   ["frostleaf.png",	0,		2.1e27,		0,			7.4698e22,			0,			4			,0], _
+   ["dread.png",		0,		1e40,		0,			1.31e32,			0,			20			,0], _
+   ["Atlas.png",		0,		1e55,		0,			9.65e44,			0,			20			,0], _
+   ["terra.png",		0,		1e70,		0,			7.113e57,			0,			20			,0], _
+   ["phthalo.png",		0,		1e85,		0,			5.24e70,			0,			20			,0], _
+   ["temp.png",			0,		1e100,		0,			3.861e83,			0,			20			,0], _
+   ["temp.png",			0,		1e115,		0,			2.845e96,			0,			20			,0], _
+   ["temp.png",			0,		1e130,		0,			2.096e109,			0,			20			,0], _
+   ["temp.png",			0,		1e145,		0,			1.544e122,			0,			20			,0], _
+   ["temp.png",			0,		1e160,		0,			1.137e135,			0,			20			,0] _
+   ]
 Global $curHero = 0
 Global $result = 0
 Global $hTimer = TimerInit();
+Global $lastRunTurnStatus = 0
 
-showAll()
-;setHero()
+
+
+;showAll()
+setHero()
+Func scrollTo($x, $lookFor)
+   getScrollPos()
+
+   ControlClick($handle,"", "", "Left",1,461, 387)
+
+if $upX = 0 And $upY = 0 Then
+   $result = _ImageSearchArea("images/up.png", 1, $left, $top, $right, $bottom, $x1, $y1, 120)
+   if $result = 1 Then
+	  $upX = $x1
+	  $upY = $y1
+   Else
+	  return 0
+   EndIf
+
+EndIf
+if $downX = 0 And $downY = 0 Then
+   $result = _ImageSearchArea("images/down.png", 1, $left, $top, $right, $bottom, $x1, $y1, 120)
+   if $result = 1 Then
+	  $downX = $x1
+	  $downY = $y1
+   Else
+	  return 0
+   EndIf
+EndIf
+if $x = -1 Then
+   clickMouseScreen($downX, $downY - 35, "Left")
+   sleep(200)
+   clickMouseScreen($downX, $downY, "Left")
+   clickMouseScreen($downX, $downY, "Left")
+   $lastHero = $curHero
+   Return
+EndIf
+if $x = 0 Then
+   clickMouseScreen($upX, $upY + 35, "Left")
+   sleep(200)
+   clickMouseScreen($upX, $upY, "Left")
+   clickMouseScreen($upX, $upY, "Left")
+   $lastHero = 3
+   Return
+EndIf
+$diff = Abs($x - $lastHero)
+_GUICtrlEdit_AppendText($editctrl2,"Looping To: " &$x & " From: "& $lastHero & @CRLF)
+if $diff > $curHero/2 Then
+
+   if $x < $curHero/2 Then
+	  clickMouseScreen($upX, $upY + 35, "Left")
+	  $lastHero = 0
+   Else
+	  clickMouseScreen($downX, $downY - 35, "Left")
+	  $lastHero = $curHero
+   EndIf
+
+
+
+EndIf
+$loop = 0
+$loopLoop = 0
+while (true)
+
+   if $lastHero > $x Then
+	  clickMouseScreen($upX, $upY, "Left")
+   Else
+	  clickMouseScreen($downX, $downY, "Left")
+   EndIf
+   sleep(50)
+   $result = _ImageSearchArea($lookFor, 1, $left, $top + 173, $left + $width / 2,  $top + 590, $x1, $y1, 60)
+   if($result = 1) Then
+	  ;_GUICtrlEdit_AppendText($editctrl2,"LoopDone:" & @CRLF)
+	  Return
+   EndIf
+   if($loop > 50) Then
+	  clickMouseScreen($downX, $downY - 35, "Left")
+	  $lastHero = $curHero
+	  $loopLoop = $loopLoop +1
+	  $loop = 0
+   EndIf
+   if($loopLoop > 3) Then
+	 Return
+   EndIf
+   $loop = $loop + 1
+WEnd
+Return
+
+
+
+
+
+
+$varbottom = ($curhero + 1) * $heroHeight + $upgradeHeight - $heroBoxHeight
+$diff = $goal/$varbottom
+$val = $diff * (($downY-35) - ($upY + 35)) + $upY + 35
+
+_GUICtrlEdit_AppendText($editctrl2,"HeroHieght: " & ($curhero + 1) * $heroHeight & " additional " & $upgradeHeight - $heroBoxHeight & " x: " & $x & @CRLF)
+_GUICtrlEdit_AppendText($editctrl2,"Ytop: " & $upY + 35 & " YBottom " &$downY-35 & @CRLF)
+_GUICtrlEdit_AppendText($editctrl2,"Click: " & $upX & " " &$val & @CRLF)
+MouseClick($upX,$val)
+return
+$origPos = $scrollPos
+sleep(500)
+getScrollPos()
+$lastpos = $scrollPos
+
+EndFunc
 
 ;Sets Initial Hero Levels
 Func setHero()
-   _GUICtrlEdit_AppendText($editctrl,"setHero")
-   ;Set to CurHero
-   $curHero=4
+   $curhero = 1
+
+   checkScreen()
+
    ;Cid
-   $arrHeroes[0][1]= 10
+   $arrHeroes[0][1]= 0
    ;Tree
-   $arrHeroes[1][1]= 10
+   $arrHeroes[1][1]= 0
    ;Ivan
-   $arrHeroes[2][1]= 10
+   $arrHeroes[2][1]= 0
    ;Brittany
-   $arrHeroes[3][1]= 10
+   $arrHeroes[3][1]= 0
    ;Fisherman
-   $arrHeroes[4][1]= 5
-   #comments-start
+   $arrHeroes[4][1]= 0
    ;Betty
-   $arrHeroes[5][1]= 10
+   $arrHeroes[5][1]= 0
    ;Samurai
-   $arrHeroes[6][1]= 10
+   $arrHeroes[6][1]= 0
    ;Leon
-   $arrHeroes[7][1]= 10
+   $arrHeroes[7][1]= 0
    ;Forest
-   $arrHeroes[8][1]= 10
+   $arrHeroes[8][1]= 0
    ;Alexa
-   $arrHeroes[9][1]= 10
+   $arrHeroes[9][1]= 0
    ;Natalia
-   $arrHeroes[10][1]= 10
-
+   $arrHeroes[10][1]= 0
    ;Mercedes
-   $arrHeroes[11][1]= 100
+   $arrHeroes[11][1]= 0
    ;Bobby
-   $arrHeroes[12][1]= 100
+   $arrHeroes[12][1]= 0
    ;Fire
-   $arrHeroes[13][1]= 100
+   $arrHeroes[13][1]= 0
    ;George
-   $arrHeroes[14][1]= 100
+   $arrHeroes[14][1]= 0
    ;King
-   $arrHeroes[15][1]= 100
+   $arrHeroes[15][1]= 0
    ;Jerator
-   $arrHeroes[16][1]= 100
+   $arrHeroes[16][1]= 0
    ;Abaddon
-   $arrHeroes[17][1]= 100
+   $arrHeroes[17][1]= 0
    ;Ma Zhu
-   $arrHeroes[18][1]= 100
+   $arrHeroes[18][1]= 0
    ;Amenhotep
-   $arrHeroes[19][1]= 25
+   $arrHeroes[19][1]= 0
    ;Beastlord
-   $arrHeroes[20][1]= 25
+   $arrHeroes[20][1]= 0
    ;Athena
-   $arrHeroes[21][1]= 25
+   $arrHeroes[21][1]= 0
    ;Aphrodite
-   $arrHeroes[22][1]= 25
+   $arrHeroes[22][1]= 0
    ;Shinatobe
-   $arrHeroes[23][1]= 25
+   $arrHeroes[23][1]= 0
    ;Grant
-   $arrHeroes[24][1]= 25
+   $arrHeroes[24][1]= 0
    ;FrostLeaf
-   $arrHeroes[25][1]= 8
+   $arrHeroes[25][1]= 0
+   ;Good Measure
+   $arrHeroes[26][1]= 0
 
-   #comments-end
+
 EndFunc
 
 Func reset()
    _GUICtrlEdit_AppendText($editctrl,"reset"  & @CRLF)
+   $nexthero = 1
 
    Local $iHours = 0, $iMins = 0, $iSecs = 0
    Local $iEnd = TimerDiff($hTimer)
    _TicksToTime($iEnd, $iHours, $iMins, $iSecs)
    _GUICtrlEdit_AppendText($editctrl2,"Time to Ascend: " & StringFormat("%02d:%02d:%02d", $iHours, $iMins, $iSecs)  & @CRLF)
    ; The main varibales are all reset back to the defaults
-		 $timeMain = 0
+		 $timeMain = 24
 		 $ascendBaseReached = False
 		 checkScreen()
 		 $hTimer = TimerInit();
+
+		 $mostGold = 0
 
    ;Set to CurHero
    $curHero=0
@@ -230,9 +415,45 @@ Func reset()
    $arrHeroes[26][1]= 0
 
 EndFunc
+Func getScrollPos()
+   $scrollPos=_MemoryRead($scrollAddress,$ID)
+   #comments-start
+   if ($scrollTop = 0 And $scrollBottom = 0) And ($upY <> 0 And $downY <> 0) Then
+	  clickMouseScreen($upX,$upY + 35, "Left")
+	  sleep(1000)
+	  $result = _ImageSearchArea("images/TabTop.png", 1, $left, $top, $left + $width/2, $bottom, $x1, $y1, 10)
+	  if $result = 1 Then
+		 _GUICtrlEdit_AppendText($editctrl,"$y1: " & $y1 & " $x1: " & $x1 &@CRLF)
+		 $scrollTop = $y1
+		 sleep(1000)
+	  EndIf
+
+	  clickMouseScreen($upX,$downY - 35, "Left")
+	  sleep(1000)
+	  $result = _ImageSearchArea("images/Tab.png", 1, $left, $top, $left + $width/2, $bottom, $x1, $y1, 10)
+	  if $result = 1 Then
+		 _GUICtrlEdit_AppendText($editctrl,"$y1: " & $y1 & " $x1: " & $x1 &@CRLF)
+		 $scrollBottom = $y1
+		 sleep(1000)
+	  EndIf
+   EndIf
+
+   $varbottom = ($curhero + 1) * $heroHeight + $upgradeHeight - $heroBoxHeight
+   $result = _ImageSearchArea("images/Tab.png", 1, $left, $top, $left + $width/2, $bottom, $x1, $y1, 10)
+   if $result = 1 Then
+		$scrollPos = (($y1 - $scrollTop)/($scrollBottom - $scrollTop)) * $varbottom
+   EndIf
+   #comments-end
+
+EndFunc
+
+Func getGold()
+   $gold=_MemoryRead($goldAddress,$ID ,"double")
+EndFunc
 
 Func runBot()
    ; Gets the bounding rectangle of clicker heroes
+
    checkScreen()
 
    Local $iHours = 0, $iMins = 0, $iSecs = 0
@@ -240,13 +461,15 @@ Func runBot()
    _TicksToTime($iEnd, $iHours, $iMins, $iSecs)
    _GUICtrlEdit_AppendText($editctrl2,"Runbot: " & StringFormat("%02d:%02d:%02d", $iHours, $iMins, $iSecs) & @CRLF)
    _GUICtrlEdit_AppendText($editctrl2,"PLEASE PRESS F10 TO STOP ME" & @CRLF)
+   checkFarmState()
+   checkCurHero()
    ;If we arnt starting with an override then start
-   If $curHero = 0 Then
-	  checkHeroes()
-   EndIf
+   ;If $curHero = 0 Then
+	;  checkHeroes()
+   ;EndIf
    ; Makes the script run indefinately
    While ($i = 0)
-
+   ;ControlClick($handle, "", "", "WU", 1)
    ; This is where the main running of the bot happens. The bot runs on ticks and whenever the tick
    ; amount gets to a certain point, the methods will get called. Currently the methods are spaced
    ; apart to let the more important methods get more calls. To change how often a certain method
@@ -260,29 +483,48 @@ Func runBot()
 	  EndIf
 
 	  ; Checks the farm button state every 60 ticks
-	  If Mod($timeMain,360) = 0 Then
-		 checkFarmState() ;WORKING
+	  If Mod($timeMain,4) = 0 Then
+		 ;_GUICtrlEdit_AppendText($editctrl2,"TickCheck: " & $lastProgressToggle + 41000& " CurTick: " & _Date_Time_GetTickCount() & @CRLF)
+		 if($lastProgressToggle + 40000 * 1.5 < _Date_Time_GetTickCount() Or $lastProgressToggle > _Date_Time_GetTickCount()) Then
+
+			$thisRunStatus = checkFarmState() ;WORKING
+			if $thisRunStatus = 0 Then
+			   $lastRunTurnStatus = 0
+			   _GUICtrlEdit_AppendText($editctrl2,"Farm progress Reset" & @CRLF)
+			EndIf
+
+			$lastRunTurnStatus = $lastRunTurnStatus + $thisRunStatus
+			_GUICtrlEdit_AppendText($editctrl2,"Farm progress Counter: " & $lastRunTurnStatus & @CRLF)
+			if $lastRunTurnStatus >= 3 Then
+
+			   _GUICtrlEdit_AppendText($editctrl2,"Ascending" & @CRLF)
+			   $lastRunTurnStatus = 0
+			   Ascend()
+
+			EndIf
+		 EndIf
 	  EndIf
 
+
 	  ; Checks for the upgrade box every 30 ticks
-	  If Mod($timeMain,30) = 0 Then
+	  If Mod($timeMain,120) = 0 Then
 		 clickUpgadeBox() ;WORKING
 	  EndIf
 
-	  ; Checks the ascend plus amount every 10 ticks
-	  If $ascendBaseReached = true Then
-			Ascend()
+	  ; Find the fish!
+	  If Mod($timeMain,6) = 0 Then
+		 findFish()
 	  EndIf
 
 	  ; Calls the level up method every tick
-	  If Mod($timeMain,6) = 0 Then
-		 levelUp()
+	  If Mod($timeMain,1) = 0 Then
+		 altLevelUp3()
 	  EndIf
 
-	  ; Find the fish!
-	  If Mod($timeMain,3) = 0 Then
-		 findFish()
-	  EndIf
+	  ; Calls the level up method every tick
+	  ;If Mod($timeMain,6) = 0 Then
+		; checkGild()
+	  ;EndIf
 
 	  $timeMain = $timeMain + 1
 
@@ -290,596 +532,596 @@ Func runBot()
 	  ;Sleep(500)
    WEnd
 EndFunc
+Func checkGild()
+   $result = _ImageSearchArea("images/gild.png", 1, $left, $top, $right, $bottom, $x1, $y1, 120)
+   if $result = 1 Then
+	  clickMouseScreen($x1,$y1, "Left")
+	  $result = _WaitForImageSearchArea("images/gildchest.png", 2, 1, $left, $top, $right, $bottom, $x1, $y1, 120)
+	  if $result = 1 Then
+		 clickMouseScreen($x1,$y1, "Left")
+		 $result = _WaitForImageSearchArea("images/Exit.png", 2, 1, $left, $top, $right, $bottom, $x1, $y1, 120)
+		 if $result = 1 Then
+			clickMouseScreen($x1,$y1, "Left")
+		 EndIf
+	  EndIf
+   EndIf
+
+
+
+EndFunc
 
 ; Gets the bounding rectangle of clicker heroes
 Func checkScreen()
    Local $aPos = WinGetPos("Clicker Heroes")
 
-   $left = $aPos[0]
-   $top = $aPos[1]
-   $right = $left + $aPos[2]
-   $bottom = $top + $aPos[3]
+   $left = $aPos[0] + $border
+   $top = $aPos[1] + $wtit
+   $right = $left + $aPos[2] - $border * 2
+   $bottom = $top + $aPos[3] - ($border + $wtit)
+   $width = $right - $left
+   $height = $bottom - $top
 
    ;_ImageSearchArea('check5.bmp', 1, left, top, right, bottom, $x, $y, 0)
+EndFunc
+Func clickMouseScreen($xpos, $ypos, $click, $count = 1)
+   ControlClick($handle,"", "",$click,$count,$xpos - $left,$ypos - $top)
 EndFunc
 
 ; Checks that the farm state is still turned on
 Func checkFarmState()
-   Local $aCoord = PixelSearch($right - ($right/36), $bottom / 2.65 , $right, $bottom / 2.65 + ($right/36), 0xFF0000)
-   if @error = 0 Then
-	  ;MsgBox( 0, "checkFarmState", "Success!")
-	  ;MouseClick("left", $right - 20, $bottom / 2.65 + 20,1,5)
-	  Local $retCode = WinActivate("Clicker Heroes")
-	  If $retCode <> 0 Then
-		 ControlSend ("Clicker Heroes","","","{A}")
-	  EndIf
+   $lastProgressToggle = _Date_Time_GetTickCount ( )
+   $result = _ImageSearchArea("images/farmoff.png", 1, $left, $top, $right, $bottom, $x1, $y1, 40)
+   if $result = 1 Then
+
+	  _GUICtrlEdit_AppendText($editctrl2,"Turn on Progression, TickCount: " & $lastProgressToggle & @CRLF)
+	  clickMouseScreen($x1,$y1,"Left")
+
+	  Sleep(1000)
+	  return 1
    EndIf
+   return 0
 EndFunc
 
 Func findFish()
    ;Fish Find
-   $result = _ImageSearchArea("images/fish.png", 1, $left, $top, $right, $bottom, $x1, $y1, 120)
+   $result = _ImageSearchArea("images/fish.png", 1, $left, $top, $right, $bottom, $x1, $y1, 70)
 	  If $result = 1 Then
-		 ;MouseClick("left",$x1,$y1)
-		 WinActivate("Clicker Heroes")
-		 ControlClick("Clicker Heroes","", "", "Left",1,$x1,$y1)
-		 Sleep(300)
-		  _GUICtrlEdit_AppendText($editctrl2,"Fish Found!" & @CRLF)
+		 clickMouseScreen($x1,$y1, "Left")
+		 _GUICtrlEdit_AppendText($editctrl2,"Fish Found!" & @CRLF)
 	  EndIf
 EndFunc
-; Levels up a character if the gilded button is on screen
-Func levelUp()
-   _GUICtrlEdit_AppendText($editctrl,"levelUp Case " & $curHero & @CRLF)
-   $x2 = 0
-   $y2 = 0
 
-   Switch ($curHero)
-   Case 0
-	  ;Attempt to Level Cid
-	  $result = _ImageSearchArea("images/heroes/normal/" & $arrHeroes[0][0], 1, $left, $top, $right, $bottom, $x1, $y1, 60)
-	  If $result = 1 Then
-		 $result = _ImageSearchArea("images/level.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 120)
-		 If $result = 1 Then
-			;MouseClick("left",$x2,$y2)
-			WinActivate("Clicker Heroes")
-			ControlClick("Clicker Heroes","", "", "Left",1,$x2,$y2)
-			$arrHeroes[0][1]= $arrHeroes[0][1] + 1
-			;MouseMove($x1,$y1)
-			If $arrHeroes[0][1] >= 10 Then
-			   $curHero = 1
-			EndIf
-		 EndIf
-	  EndIf
-   Case 1
-	  ;Attempt to Level Treebeast
-	  $result = _ImageSearchArea("images/heroes/normal/" & $arrHeroes[1][0], 1, $left, $top, $right, $bottom, $x1, $y1, 60)
-	  If $result = 1 Then
-		 $result = _ImageSearchArea("images/level.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 120)
-		 If $result = 1 Then
-			;MouseClick("left",$x2,$y2)
-			WinActivate("Clicker Heroes")
-			ControlClick("Clicker Heroes","", "", "Left",1,$x2,$y2)
-			$arrHeroes[1][1]= $arrHeroes[1][1] + 1
-			;MouseMove($x1,$y1)
-			If $arrHeroes[1][1] >= 10 Then
-			   $curHero = 2
-			EndIf
-		 EndIf
-	  EndIf
-   Case 2
-	  ;Attempt to Hire then Level Ivan
-	  hireLevel(2)
-   Case 3
-	  ;Attempt to Hire then Level Brittany
-	  hireLevel(3)
-   Case 4
-	  ;Attempt to Hire then Level Fish
-	  findHero(4)
-	  hireLevel(4)
-   Case 5
-	  ;Attempt to Hire then Level Betty
-	  findHero(5)
-	  hireLevel(5)
-   Case 6
-	  ;Attempt to Hire then Level Samurai
-	  findHero(6)
-	  hireLevel(6)
-	  levelUp100()
-   Case 7
-	  ;Attempt to Hire then Level Leon
-	  findHero(7)
-	  hireLevel(7)
-   Case 8
-	  ;Attempt to Hire then Level Forest
-	  findHero(8)
-	  hireLevel(8)
-   Case 9
-	  ;Attempt to Hire then Level Alexa
-	  findHero(9)
-	  hireLevel(9)
-   Case 10
-	  ;Attempt to Hire then Level Natalia
-	  findHero(10)
-	  hireLevel(10)
-   Case 11
-	  ;Attempt to Hire then Level Mercedes
-	  findHero(11)
-	  hireLevel(11)
-   Case 12
-	  ;Attempt to Hire then Level Bobby
-	  findHero(12)
-	  hireLevel(12)
-	  levelUp100()
-   Case 13
-	  ;Attempt to Hire then Level Broye Fire Mage
-	  findHero(13)
-	  hireLevel(13)
-   Case 14
-	  ;Attempt to Hire then Level George
-	  findHero(14)
-	  hireLevel(14)
-   Case 15
-	  ;Attempt to Hire then Level King Midas
-	  findHero(15)
-	  hireLevel(15)
-   Case 16
-	  ;Attempt to Hire then Level Jerator
-	  findHero(16)
-	  hireLevel(16)
-   Case 17
-	  ;Attempt to Hire then Level Abaddon
-	  findHero(17)
-	  hireLevel(17)
-   Case 18
-	  ;Attempt to Hire then Level Mu Zhu
-	  findHero(18)
-	  hireLevel(18)
-	  levelUp100()
-   Case 19
-	  ;Attempt to Hire then Level Amenhotep
-	  findHero(19)
-	  hireLevel(19)
-   Case 20
-	  ;Attempt to Hire then Level Beastlord
-	  findHero(20)
-	  hireLevel(20)
-   Case 21
-	  ;Attempt to Hire then Level Athena
-	  findHero(21)
-	  hireLevel(21)
-   Case 22
-	  ;Attempt to Hire then Level Aphrodite
-	  findHero(22)
-	  hireLevel(22)
-	  levelUp100()
-   Case 23
-	  ;Attempt to Hire then Level Shinatobe
-	  findHero(23)
-	  hireLevel(23)
-   Case 24
-	  ;Attempt to Hire then Level Grant
-	  findHero(24)
-	  hireLevel(24)
-   Case 25
-	  ;Attempt to Hire then Level Frostleaf
-	  findHero(25)
-	  hireLevel(25)
-   Case 26
-	  If $arrHeroes[24][1] >= $arrHeroes[24][3] Then
-		 checkIfAscendBaseReached()
-	  EndIf
-	  levelUpBulk()
-   Case Else
-	  Msgbox(0,"Abort", "We are at Case Number which isnt coded yet: " & $curHero)
-	  Exit
-   EndSwitch
+
+Func RecurseLevel($pos)
+   $value = 0
+   findHeroPure($pos)
+   $value = AltLevelHero()
+   if $value > 0 Then
+	  _GUICtrlEdit_AppendText($editctrl,"L-Up " & $arrHeroes[$lastHero][0] & " + " & $value & " = " & $arrHeroes[$lastHero][1] & @CRLF)
+   EndIf
+   if $pos - 1 >= 1 Then
+	  sleep(500)
+	  RecurseLevel($pos - 1)
+   EndIf
+
+
 
 
 EndFunc
+Func LeveUPXAmount()
+   _GUICtrlEdit_AppendText($editctrl,"Got To LevelUp - " & $arrHeroes[$lastHero][0] & " To Level:" & $arrHeroes[$lastHero][3] + $arrHeroes[$lastHero][1]& " From Level: "  & $arrHeroes[$lastHero][1] &  @CRLF)
+   $value = $arrHeroes[$lastHero][3]
+   $result = _WaitForImageSearchArea("images/level.png",0.5,  1, $left, $HeroY, $HeroX, $HeroY + ($bottom/8), $x2, $y2, 120)
+   if $result = 0 Then
+	  $result = _WaitForImageSearchArea("images/hire2.png",0.5,  1, $left, $HeroY, $HeroX, $HeroY + ($bottom/8), $x2, $y2, 120)
+	  if $result = 0 Then
+		 return 0;
+	  EndIf
+   EndIf
+   #comments-start
+   $var = Floor($value / 100)
+   $value = $value - $var * 100
 
-Func findHero($pos)
-   _GUICtrlEdit_AppendText($editctrl,"findHero Hero: " & $arrHeroes[$pos][0] & @CRLF)
+   if $var >= 1 Then
+   ControlSend ("Clicker Heroes","","","{CTRLDOWN}")
+
+   for $loop = 1 To $var
+
+   sleep(100)
+   _GUICtrlEdit_AppendText($editctrl,"Add 100 Levels" & @CRLF)
+   clickMouseScreen($x2, $y2, "Left")
+   $value = $value - 100
+   $arrHeroes[$lastHero][1] = $arrHeroes[$lastHero][1] + 100
+   sleep(100)
+Next
+
+   ControlSend ("Clicker Heroes","","","{CTRLUP}")
+
+   EndIf
+
+   $var = Floor($value / 25)
+   $value = $value - $var * 25
+   if $var >= 1 Then
+
+   ControlSend ("Clicker Heroes","","","{Z DOWN}")
+
+   for $loop = 1 To $var
+
+   sleep(100)
+   _GUICtrlEdit_AppendText($editctrl,"Add 25 Levels" & @CRLF)
+   clickMouseScreen($x2, $y2, "Left")
+   $value = $value - 25
+   $arrHeroes[$lastHero][1] = $arrHeroes[$lastHero][1] + 25
+   sleep(100)
+   Next
+
+   ControlSend ("Clicker Heroes","","","{Z UP}")
+
+EndIf
+
+   $var = Floor($value / 10)
+   $value = $value - $var * 10
+   if $var >= 1 Then
+   ControlSend ("Clicker Heroes","","","{SHIFTDOWN}")
+   for $loop = 1 To $var
+
+   sleep(100)
+   _GUICtrlEdit_AppendText($editctrl,"Add 10 Levels" & @CRLF)
+   clickMouseScreen($x2, $y2, "Left")
+   $value = $value - 10
+   $arrHeroes[$lastHero][1] = $arrHeroes[$lastHero][1] + 10
+   sleep(100)
+   Next
+
+   ControlSend ("Clicker Heroes","","","{SHIFTUP}")
+   sleep(1000)
+   EndIf
+
+#comments-end
+;_GUICtrlEdit_AppendText($editctrl,"Add " & $value & " Levels" & @CRLF)
+   if $value >= 1 Then
+   for $loop = 1 To $value
+
+   clickMouseScreen($x2, $y2, "Left")
+   $value = $value - 1
+   $arrHeroes[$lastHero][1] = $arrHeroes[$lastHero][1] + 1
+   sleep(20)
+Next
+
+EndIf
+   clickMouseScreen($HeroX, $HeroY, "Left")
+   $arrHeroes[$lastHero][3] = 0
+   return $value
+EndFunc
+Func TraceOutline($l, $t, $r, $b, $string = "")
+   _GUICtrlEdit_AppendText($editctrl,"Tracing: " & $string & @CRLF)
+   MouseMove($l, $t)
+   MouseMove($r, $t)
+   MouseMove($r, $b)
+   MouseMove($l, $b)
+   MouseMove($l, $t)
+EndFunc
+
+Func AbstractLevel($level, $string, $value, $checkOrange = 1)
+   $upgrades = 0
+   $result = 1
+   while ($result = 1 And $upgrades < 5)
+	  $x2 = 0
+	  $y2 = 0
+	  $x3 = 0
+	  $y3 = 0
+	  $result = _WaitForImageSearchArea($level ,0.5,  1, $left, $HeroY, $HeroX, $HeroY + ($bottom/8), $x2, $y2, 10)
+	  If $result = 1 Then
+		 If $checkOrange = 1 Then
+			$result = _WaitForImageSearchArea("images/orange.png",.2, 1, $left, $y2, $x2, $y2 + ($bottom/8), $x3, $y3, 10)
+			If $result = 0 Then
+			   $result = 1
+			Else
+			   $result = 0
+			EndIf
+		 EndIf
+		 If $result = 1 Then
+
+			$upgrades = $upgrades + 1
+			clickMouseScreen($x2,$y2, "Left")
+			$arrHeroes[$lastHero][1]= $arrHeroes[$lastHero][1] + $value
+			sleep(50)
+			clickMouseScreen($HeroX,$HeroY, "Left")
+		 EndIf
+	  EndIf
+   WEnd
+   return $upgrades * $value
+EndFunc
+Func altLevelUp2()
+
+   $return = findHeroPure($nexthero)
+   if $return = 0 Then
+	  Return
+   EndIf
+
+   checkStatus();
+   if $status1 = 1 Then
+	  clickMouseScreen($x2,$y2, "Left")
+	  $arrHeroes[$lastHero][1]= 1
+	  if $lastHero > $curhero Then
+		 _GUICtrlEdit_AppendText($editctrl,"Set Hero to:  " & $lastHero & @CRLF)
+		 $curhero = $lastHero
+	  EndIf
+   EndIf
+   _GUICtrlEdit_AppendText($editctrl,"level Hero: " & $arrHeroes[$lastHero][0] & @CRLF)
+   $value = AltLevelHero()
+   if $value > 0 Then
+	  _GUICtrlEdit_AppendText($editctrl,"L-Up " & $arrHeroes[$lastHero][0] & " + " & $value & " = " & $arrHeroes[$lastHero][1] & @CRLF)
+   EndIf
+   $nexthero = $nexthero - 1
+   if $nexthero <= 1 Then
+	  $nexthero = $curhero + 1
+   EndIf
+
+
+EndFunc
+Func checkCurHero()
+   while($gold > $arrHeroes[$curhero][2])
+	   $curhero = $curhero+1
+	   if $curhero > 34 Then
+		  $curhero = 34
+		  Return
+	   EndIf
+	   _GUICtrlEdit_AppendText($editctrl2,"Current Hero = " &$curhero& @CRLF)
+	WEnd
+
+ EndFunc
+ Func ascendLevelUp()
+$nexthero = $curhero
+
+While($nexthero >= 0)
+   getGold()
+   $levels = CalcHeroLevelsForGold($nexthero, $gold)
+   $levels = Floor($levels *.9)
+   if($levels >= 1) Then
+	  $arrHeroes[$nexthero][3] = $levels
+	  findHeroPure($nexthero)
+	  LeveUPXAmount()
+   EndIf
+   $nexthero = $nexthero - 1;
+WEnd
+
+
+
+EndFunc
+
+
+
+Func altLevelUp3()
+
+if $nexthero = 0 Then
+   getGold()
+   if($gold < $mostGold) Then
+	  Return
+   EndIf
+   $mostGold = $gold
+   checkCurHero()
+   EstimateHeroLevels()
+   $nexthero = $curhero
+
+EndIf
+if $arrHeroes[$nexthero][3] + $arrHeroes[$nexthero][1] = $arrHeroes[$nexthero][1] Then
+
+Else
+
+   $result = findHeroPure($nexthero)
+   ;_GUICtrlEdit_AppendText($editctrl,"Found Hero : " & $result & @CRLF)
+   if $result = 1 then
+	  _GUICtrlEdit_AppendText($editctrl,"Send To LevelUp" &  @CRLF)
+	  LeveUPXAmount()
+   EndIf
+EndIf
+   $nexthero = $nexthero - 1
+
+
+EndFunc
+Func CalculateDPS($h, $newLevel)
+   ;HeroDps					   Level				 Gilds									PersonalBonus
+   $damage = $arrHeroes[$h][4] * $newLevel * (1 + (.51  + $argaivLevel *.02) * $arrHeroes[$h][5]) * $arrHeroes[$h][6]
+   $multiplier = 1;
+   $workingLevel = $newLevel
+   if($workingLevel > 1000) Then
+	  $multiplier = $multiplier * 2.5
+   EndIf
+   if($workingLevel > 2000) Then
+	  $multiplier = $multiplier * 2.5
+   EndIf
+   if($workingLevel > 3000) Then
+	  $multiplier = $multiplier * 2.5
+   EndIf
+	  $workingLevel = $workingLevel - 175
+   if($workingLevel>=25)Then
+
+	  $multiplier = $multiplier * (4 ^ (Floor(($newLevel - 175)/25)))
+
+   EndIf
+
+   return $damage * $multiplier
+EndFunc
+
+Func CalculateNewDPS($h, $oldLevel, $newLevel)
+    $new = CalculateDps($h, $newLevel)
+	$old = CalculateDps($h, $oldLevel)
+   $arrHeroes[$h][7] = $new - $old
+   return $arrHeroes[$h][7]
+EndFunc
+Func EfficientBuy()
+$checkhero = $curHero + 1
+$hero = -1
+$effectiveness  = 0
+$addlevels = 0
+While($checkhero >= 1)
+   $arrHeroes[$checkhero][7] = 0
+   $currentestimate = CalcHeroLevelsForGold($checkhero, $gold)
+   $newDps = CalculateNewDPS($checkhero, $arrHeroes[$checkhero][1], $arrHeroes[$checkhero][1] + $currentestimate)
+   $cost = CalcHeroGoldCost($checkhero, $arrHeroes[$checkhero][1] + $currentestimate)
+   $eff = $newDps/$gold
+   if($eff > $effectiveness) Then
+	  $addlevels = $currentestimate
+	  $effectiveness = $eff
+	  $hero = $checkhero
+
+   EndIf
+
+
+
+$checkhero = $checkhero -1
+WEnd
+if($hero <> -1)Then
+$arrHeroes[$hero][3] = $addlevels
+EndIf
+EndFunc
+
+
+
+
+
+Func ExpertLog($Number, $Base)
+    return Log($Number) / Log($Base)
+ EndFunc
+
+Func CalcHeroLevelsForGold($h, $goldcount)
+   $var2 = ($goldcount/($arrHeroes[$h][2] * $hiringReduction))* (1-1.07)
+   $var3 = 1.07^$arrHeroes[$h][1]
+   $var = ExpertLog($var3 - $var2, 1.07)
+   $tempvalue = Floor ($var)
+
+    return $tempvalue - $arrHeroes[$h][1]
+ EndFunc
+ Func CalcHeroGoldCost($h, $newlevel)
+
+   $var2 = 1.07^$arrHeroes[$h][1]
+   $var3 = 1.07^($arrHeroes[$h][1] + $newlevel)
+   $var = (1-1.07)
+
+
+
+
+	$var1 =$arrHeroes[$h][2] * ($var2 - $var3)/$var;getGeometricSum($arrHeroes[$h][2], 1.07, $arrHeroes[$h][1]-1, $arrHeroes[$h][1] + $newlevel)
+	;_GUICtrlEdit_AppendText($editctrl,"-----$h " & $h & " $newlevel " & $newlevel & " $var1 " & $var1 & "--------" & @CRLF)
+	return $var1
+ EndFunc
+ Func getMaxLevel($gold,$factor, $base, $lev)
+   $vartop = $lev - 1
+   $varBottom = ExpertLog($gold * (1 - $base), $base)/$factor
+   $end = $vartop/$varBottom
+   	return $end
+EndFunc
+
+Func getGeometricSum($factor, $base, $firstexponent, $second)
+   $front = $base^$firstexponent
+   $back = $base^($second)
+   $bot = (1-$base)
+   $final = (($front - $back)/($bot))
+   	return $factor * $final
+ EndFunc
+ Func verify150()
+	$flag = 0
+	$goldestimate = $gold
+	for $var = 1 To $curHero + 1
+	   if($arrHeroes[$var][1] < 150 And $goldestimate > 0) Then
+		 $currentestimate = CalcHeroLevelsForGold($var, $goldestimate)
+		 if($currentestimate + $arrHeroes[$var][1] > 150) Then
+		 $tempvalue = Mod ( $currentestimate + $arrHeroes[$var][1], 150 )
+		 $currentestimate = $currentestimate - $tempvalue
+		 $goldUsed = CalcHeroGoldCost($var, $currentestimate)
+		 $arrHeroes[$var][3] = $currentestimate
+		 $goldestimate= $goldestimate - $goldUsed
+		 _GUICtrlEdit_AppendText($editctrl2,"QuickExit" & @CRLF)
+		 return 1
+	  EndIf
+	  EndIf
+
+
+   Next
+   return 0
+EndFunc
+Func EstimateHeroLevels()
+if $gold < 50 Then
+   clickMouseScreen($left + ($width / 1.2 ), $top + (($height) / 2), "Left")
+   Return
+EndIf
+$herocount = 0
+$herotarget = $curhero
+$checkhero = $curhero
+if(verify150() = 1) Then
+   _GUICtrlEdit_AppendText($editctrl2,"QuickExit" & @CRLF)
+   Return
+EndIf
+EfficientBuy()
+return;
+$goldEstimate = $gold
+_GUICtrlEdit_AppendText($editctrl2,"Start $gold" & $goldEstimate & @CRLF)
+While($checkhero >= 1)
+   $arrHeroes[$checkhero][3] = 0
+   $currentestimate = 0
+   $currentlevel = $arrHeroes[$checkhero][1]
+
+   $currentestimate = CalcHeroLevelsForGold($checkhero, $goldEstimate)
+   $tempvalue = Mod ( $currentestimate + $currentlevel, 25 )
+   ;_GUICtrlEdit_AppendText($editctrl,"-----$tempvalue " & $tempvalue & " From " & $currentestimate & " cost " & $currentestimate & "--------" & @CRLF)
+  ; $weee = CalcHeroGoldCost($checkhero, $tempvalue)
+   ;_GUICtrlEdit_AppendText($editctrl,"L-UpTo " & $arrHeroes[$checkhero][1] + $arrHeroes[$checkhero][3] & " From " & $arrHeroes[$checkhero][1] & " cost " & $weee & @CRLF)
+   if $arrHeroes[$checkhero][1] + $currentestimate < 100 Then
+   Else
+	  $oldCurrent = $currentestimate
+	  $currentestimate = $currentestimate - $tempvalue
+   EndIf
+   if $currentestimate >= 1 Then
+	  $goldUsed = CalcHeroGoldCost($checkhero, $currentestimate)
+	  if $goldUsed < $goldEstimate Then
+		 $goldEstimate = $goldEstimate - $goldUsed
+		 ;_GUICtrlEdit_AppendText($editctrl,"^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"& @CRLF)
+		 $arrHeroes[$checkhero][3] = $currentestimate
+		 ;_GUICtrlEdit_AppendText($editctrl,"L-UpTo " & $arrHeroes[$checkhero][1] + $arrHeroes[$checkhero][3] & " From " & $arrHeroes[$checkhero][1] & @CRLF)
+		 ;_GUICtrlEdit_AppendText($editctrl,"$goldUsed " & $goldUsed & " $goldEstimate " & $goldEstimate & @CRLF)
+		 ;_GUICtrlEdit_AppendText($editctrl,"vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"& @CRLF)
+	  Else
+		 _GUICtrlEdit_AppendText($editctrl,"WHAT THE FUCK?!" & @CRLF)
+	  EndIf
+   EndIf
+   $checkhero = $checkhero - 1
+
+WEnd
+
+EndFunc
+
+Func altLevelUp()
+1.581e33
+   findHeroPure($curhero + 1)
+   checkStatus();
+   if $status1 = 1  Or $status3  = 1 Then
+	  clickMouseScreen($x2,$y2, "Left")
+	  $arrHeroes[$lastHero][1]= 1
+	  $curhero = $lastHero
+   EndIf
+
+   RecurseLevel($curhero)
+
+
+
+EndFunc
+Func findHeroPure($pos)
    ;Check if Previous Hero is Hired else Abort
+   ;_GUICtrlEdit_AppendText($editctrl,"findHero Hero: " & $arrHeroes[$pos][0] & @CRLF)
    Local $heroFound = 0
    Local $loopDown = 0
    Local $loopOverall = 0
    Local $foundButton = 0
-   ;First !
-   If ($pos = 0) Then
-	  While ($i = 0)
-		 $result = _ImageSearchArea("images/heroes/normal/" & $arrHeroes[$pos][0], 1, $left, $top, $right, $bottom, $x1, $y1, 60)
-		 If $result = 1 Then
-			Local $result1, $result2, $result3, $result4
-			Do
-			   $result1 = _ImageSearchArea("images/hire2.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 60)
-			   $result2 = _ImageSearchArea("images/hire.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 60)
-			   $result3 = _ImageSearchArea("images/level.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 60)
-			   $result4 = _ImageSearchArea("images/level2.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 60)
-			   If $result1 = 1 or $result2 = 1 or $result3 = 1 or $result4 = 1 Then
-				  _GUICtrlEdit_AppendText($editctrl,"Hero Found: " & $arrHeroes[$pos][0] & " Results " & $result1 & "|" & $result2 & "|" & $result3 & "|" & $result4 & @CRLF)
-				  $foundButton = 1
-				  ExitLoop
-			   Else
-				  WinActivate("Clicker Heroes")
-				  MouseWheel("down")
-				  MouseWheel("up",2)
-			   EndIf
+   Local $waitTime = .4
 
-			Until (0 = 1)
-		 Else
-			WinActivate("Clicker Heroes")
-			MouseWheel("up")
-			$loopDown = $loopDown + 1
-			$loopOverall = $loopDown + 1
-			If $loopDown > 30 Then
-			   ;Msgbox(0,"Test","We likely shouldnt be here")
-			   WinActivate("Clicker Heroes")
-			   MouseWheel("down",10)
-			   Sleep(100)
-			   $loopDown = 0
-			EndIf
-			If $loopOverall > 90 Then
-			   Msgbox(0,"Test","This should never happen, something likely wrong with the image")
-			   Exit
-			EndIf
-		 EndIf
-		 If $foundButton = 1 Then
-			ExitLoop
-		 EndIf
-	  Wend
-   ;Other Heroes
-   ElseIf ($arrHeroes[$pos-1][1] > 0) Then
-	  While ($i = 0)
-		 $result = _ImageSearchArea("images/heroes/normal/" & $arrHeroes[$pos][0], 1, $left, $top, $right, $bottom, $x1, $y1, 60)
-		 If $result = 1 Then
-			If $y1 < 200 Then
-			   Msgbox(0,"Found","Found " & $arrHeroes[$pos][0] & " X:" & $x1 & " Y:" &$y1)
-			   Exit
-			EndIf
-			Local $result1, $result2, $result3, $result4, $doOnce = 0
-			Do
-			   $result1 = _ImageSearchArea("images/hire2.png", 1, $left, $y1-($bottom/18), $x1, $y1 + ($bottom/9), $x2, $y2,60)
-			   Sleep(100)
-			   $result2 = _ImageSearchArea("images/hire.png", 1, $left, $y1-($bottom/18), $x1, $y1 + ($bottom/9), $x2, $y2, 60)
-			   Sleep(100)
-			   $result3 = _ImageSearchArea("images/level.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 60)
-			   Sleep(100)
-			   $result4 = _ImageSearchArea("images/level2.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 60)
-
-			   If $result1 = 1 or $result2 = 1 or $result3 = 1 or $result4 = 1 Then
-				  _GUICtrlEdit_AppendText($editctrl,"Hero Found: " & $arrHeroes[$pos][0] & " Results " & $result1 & "|" & $result2 & "|" & $result3 & "|" & $result4 & @CRLF)
-				  $foundButton = 1
-				  ExitLoop
-			   Else
-				  _GUICtrlEdit_AppendText($editctrl,"Found Hero, didnt find Button: " & $arrHeroes[$pos][0] & @CRLF)
-				  If $doOnce = 0 Then
-					 WinActivate("Clicker Heroes")
-					 MouseWheel("up")
-					 Sleep(200)
-					 MouseWheel("down",2)
-					 Sleep(300)
-					 $result = _ImageSearchArea("images/heroes/normal/" & $arrHeroes[$pos][0], 1, $left, $top, $right, $bottom, $x1, $y1, 60)
-					 Sleep(1500)
-				  ElseIf $doOnce = 20 Then
-					 _GUICtrlEdit_AppendText($editctrl,"Cant find button for hero trying one last time " & $arrHeroes[$pos][0] & @CRLF)
-					 findhero($pos)
-					 ExitLoop
-				  EndIf
-				  $doOnce = $doOnce + 1
-
-			   EndIf
-
-			Until (0 = 1)
-		 Else
-			_GUICtrlEdit_AppendText($editctrl,"Didnt Find Hero: " & $arrHeroes[$pos][0] & @CRLF)
-			WinActivate("Clicker Heroes")
-			MouseWheel("down")
-			Sleep( 1000 )
-			$loopDown = $loopDown + 1
-			$loopOverall = $loopDown + 1
-			If $loopDown > 30 Then
-			   _GUICtrlEdit_AppendText($editctrl,"Cant find Hero, back to the top: " & $arrHeroes[$pos][0] & @CRLF)
-			   WinActivate("Clicker Heroes")
-			   MouseWheel("up",30)
-			   $loopDown = 0
-			   Sleep(500)
-			EndIf
-			If $loopOverall > 90 Then
-			   Msgbox(0,"Test","This should never happen, something likely wrong with the image")
-			   Exit
-			EndIf
-		 EndIf
-		 If $foundButton = 1 Then
-			ExitLoop
-		 EndIf
-	  Wend
+   if $pos = 5 Or $pos = 7 Or $pos = 15 Or $pos = 17 Or $pos = 18 Or $pos = 20 Then
+	  $waitTime = 1;
    EndIf
-EndFunc
 
-Func hireLevel($pos)
-   _GUICtrlEdit_AppendText($editctrl,"hireLevel" & @CRLF)
-   ;Hire
-	  If ($arrHeroes[$pos][1]= 0) Then
-		 Sleep(100)
-		;Msgbox(0,"Hiring","Now Hiring" & $arrHeroes[$pos][0])
-		 $result = _ImageSearchArea("images/heroes/normal/" & $arrHeroes[$pos][0], 1, $left, $top, $right, $bottom, $x1, $y1, 60)
-		 If $result = 1 Then
-			Local $result1, $result2, $result3, $result4, $downOnce=0
-			_GUICtrlEdit_AppendText($editctrl,"Found Normal Image: " & $arrHeroes[$pos][0] & @CRLF)
-			Do
-			   ;MouseMove($x1,$y1)
-			   Sleep(100)
-			   $result1 = _ImageSearchArea("images/hire2.png", 1, $left, $y1-($bottom/18), $x1, $y1 + ($bottom/9), $x2, $y2, 60)
-			   Sleep(100)
-			   $result2 = _ImageSearchArea("images/hire.png", 1, $left, $y1-($bottom/18), $x1, $y1 + ($bottom/9), $x2, $y2, 60)
-			   Sleep(100)
-			   $result3 = _ImageSearchArea("images/level.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 60)
-			   Sleep(100)
-			   $result4 = _ImageSearchArea("images/level2.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 60)
+   While ($loopOverall < 5)
+	  $result = _WaitForImageSearchArea("images/heroes/" & $arrHeroes[$pos][0], $waitTime, 1, $left, $top + 173, $left + $width / 2,  $top + 590, $x1, $y1, 60)
+	  If $result = 1 Then
+		 ;_GUICtrlEdit_AppendText($editctrl,"Found Hero " & $arrHeroes[$pos][0] &@CRLF)
+		 $HeroX = $x1
+		 $HeroY = $y1
+		 $lastHero = $pos
+		 Return 1
+	  Else
+		 scrollTo($pos, "images/heroes/" & $arrHeroes[$pos][0])
 
-			   If $result3 = 1 or $result4 = 1 Then
-				  _GUICtrlEdit_AppendText($editctrl,"Hero is already leveled" & @CRLF)
-				  $arrHeroes[$pos][1]= 1
-				  ExitLoop
-			   ElseIf $result1 = 1 Then
-				  _GUICtrlEdit_AppendText($editctrl,"About to Hire Image: " & $arrHeroes[$pos][0] & @CRLF)
-				  ;MouseClick("left",$x2,$y2)
-				  WinActivate("Clicker Heroes")
-				  ControlClick("Clicker Heroes","", "", "Left",1,$x2,$y2)
-				  $arrHeroes[$pos][1]= 1
-				  Sleep(100)
-			   ElseIf $result2 = 1 Then
-				  _GUICtrlEdit_AppendText($editctrl,"Taking a nap for 10s" & @CRLF)
-				  ;Take a Nap and wait for Money
-				  Sleep(10000)
-			   Else
-				  _GUICtrlEdit_AppendText($editctrl,"Didnt find hire image for hero " & $arrHeroes[$pos][0] & @CRLF)
-				  If $downOnce = 0 Then
-					 WinActivate("Clicker Heroes")
-					 MouseWheel("down")
-					 $downOnce = $downOnce + 1
-					 Sleep(300)
-					 $result = _ImageSearchArea("images/heroes/normal/" & $arrHeroes[$pos][0], 1, $left, $top, $right, $bottom, $x1, $y1, 60)
-					 Sleep(1700)
-				  Else
-					 ;We are likely in a weird state, ABORT!
-					 ExitLoop
-				  EndIf
-			   EndIf
-
-			Until (0 = 1)
-		 EndIf
-	  EndIf
-	  If ($arrHeroes[$pos][1] > 0) Then
-		 ;Level
-		 Local $intCounter = 0
-		 Do
-			$result = _ImageSearchArea("images/heroes/normal/" & $arrHeroes[$pos][0], 1, $left, $top, $right, $bottom, $x1, $y1, 60)
+		 Sleep( 300 )
+		 $loopOverall = $loopOverall + 1
+		 $result = _ImageSearchArea("images/salvageRelicsOkay.png", 1, $left, $top, $right, $bottom, $x1, $y1, 60)
 			If $result = 1 Then
-			   $result = _ImageSearchArea("images/level.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 120)
-			   If $result = 1 Then
-				  ;MouseClick("left",$x2,$y2)
-				  WinActivate("Clicker Heroes")
-				  ControlClick("Clicker Heroes","", "", "Left",1,$x2,$y2)
-				  $arrHeroes[$pos][1]= $arrHeroes[$pos][1] + 1
-				  If $pos = 25 and ($arrHeroes[$pos][1] = 5 or $arrHeroes[$pos][1] = 20 or $arrHeroes[$pos][1] = 40 or $arrHeroes[$pos][1] = 60 or $arrHeroes[$pos][1] = 70) Then
-						checkFarmState()
-				  EndIf
-				  If $arrHeroes[$pos][1] = 10 or $arrHeroes[$pos][1] = 15 or $arrHeroes[$pos][1] = 25 or $arrHeroes[$pos][1] = 50 or $arrHeroes[$pos][1] = 75  Then
-					 If $pos = 25 Then
-						WinActivate("Clicker Heroes")
-						MouseWheel("up")
-						Sleep(200)
-						MouseWheel("down",2)
-						Sleep(200)
-						clickUpgadeBox()
-					 Else
-						clickUpgadeBox()
-					 EndIf
-					 checkFarmState()
-				  EndIf
-				 ;MouseMove($x1,$y1)
-			   EndIf
-			   If $arrHeroes[$pos][1] >= $arrHeroes[$pos][2]  Then
-				  _GUICtrlEdit_AppendText($editctrl,"Levelup Complete for hero " & $arrHeroes[$pos][0] & @CRLF)
-				  $curHero = $pos + 1
-				  If $pos > 20 Then
-					 MouseWheel("down",2)
-					 clickUpgadeBox()
-				  EndIf
-			   EndIf
-			   $intCounter = $intCounter + 1;
+			   clickMouseScreen($x1,$y1, "Left")
 			EndIf
-		 Until ($arrHeroes[$pos][1] >= $arrHeroes[$pos][2] or $intCounter > 120)
 	  EndIf
+   Wend
+   Return 0
+EndFunc
+Func checkStatus()
+
+   $status1 = _ImageSearchArea("images/hire2.png", 1, $left, $HeroY, $HeroX, $y1 + ($height/9), $x2, $y2, 60)
+   $status2 = _ImageSearchArea("images/hire.png", 1, $left, $HeroY, $HeroX, $y1 + ($height/9), $x2, $y2, 60)
+   $status3 = _ImageSearchArea("images/level.png", 1, $left, $HeroY, $HeroX, $y1 + ($height/9), $x2, $y2, 60)
+   $status4 = _ImageSearchArea("images/level2.png", 1, $left, $HeroY, $HeroX, $y1 + ($height/9), $x2, $y2, 60)
+
 EndFunc
 
-; Checks to see if the base amount (8 or higher) of hero souls gained has been reached
-Func checkIfAscendBaseReached()
-   ; I put in multiple searches for the ascension amount since it can miss amounts if primal bosses make it jump
-   ; more than 1 HS - Credit to Redditor 51Ry for this suggestionf
-   $result8 = _ImageSearchArea("images/ascends/ascend8.png", 1, $left, $top, $right, $bottom, $x1, $y1, 70)
-   Sleep(200)
-   $result9 = _ImageSearchArea("images/ascends/ascend9.png", 1, $left, $top, $right, $bottom, $x1, $y1, 70)
-   Sleep(200)
-   $result10 = _ImageSearchArea("images/ascends/ascend10.png", 1, $left, $top, $right, $bottom, $x1, $y1, 70)
-   Sleep(200)
-   $result11 = _ImageSearchArea("images/ascends/ascend11.png", 1, $left, $top, $right, $bottom, $x1, $y1, 70)
-   Sleep(200)
-   $result12 = _ImageSearchArea("images/ascends/ascend12.png", 1, $left, $top, $right, $bottom, $x1, $y1, 70)
-   Sleep(200)
-   $result13 = _ImageSearchArea("images/ascends/ascend13.png", 1, $left, $top, $right, $bottom, $x1, $y1, 70)
-   Sleep(200)
-   $result14 = _ImageSearchArea("images/ascends/ascend14.png", 1, $left, $top, $right, $bottom, $x1, $y1, 70)
-   Sleep(200)
 
-   If $result8 = 1 Or $result9 = 1 Or $result10 = 1 Or $result11 = 1 Or $result12 = 1 Or $result13 = 1 Or $result14 Then
-	  $ascendBaseReached = True
-   EndIf
-EndFunc
 
-Func forceBuyUpgrade()
-   MouseWheel("down",20)
-   Sleep(300)
-   MouseWheel("up")
-   Sleep(300)
-   MouseWheel("down",2)
-   Sleep(15000) ;Accumulate Cash
-   clickUpgadeBox()
-   ;Move Back Up
-   MouseWheel("up",20)
-   Sleep(1000)
-EndFunc
 ; Clicks the buy available upgrades box
 Func clickUpgadeBox()
-   ;MouseMove( $left, $top )
+   scrollTo(-1, "images/buyAvailableUpgrades.png")
    Sleep(300)
-   $result = _ImageSearch("images/buyAvailableUpgrades.jpg",1,$x1, $y1,85)
+   ;_GUICtrlEdit_AppendText($editctrl,"Scrolled " & $x1 & " " & $y1 &@CRLF)
+   $result = _ImageSearchArea("images/buyAvailableUpgrades.png", 1, $left, $top, $right, $bottom, $x1, $y1, 70)
    If $result = 1 Then
-		;MouseClick("left",$x1,$y1,1,5)
-		 WinActivate("Clicker Heroes")
-		 ControlClick("Clicker Heroes","", "", "Left",1,$x1,$y1)
+	  ;_GUICtrlEdit_AppendText($editctrl,"Found Button " & $x1 & " " & $y1 &@CRLF)
+		 clickMouseScreen($x1,$y1, "Left")
    EndIf
+   $lastHero = $curHero
+   Sleep(300)
 EndFunc
+Func searchHighestHero()
+   _GUICtrlEdit_AppendText($editctrl,"SearchHeroes" &@CRLF)
+   $lasthero = 35
+   $result = 0
+   While($result = 0 And $lasthero >= $curhero)
 
-; Goes through giving 100 levels to each of the heroes that are hired
-Func levelUp100()
-   ; ANY improvements would be awesome so code away
-   WinActivate("Clicker Heroes")
-
-   Local $doOnce = 0
-
-   Local $intHeroCount =  UBound($arrHeroes, $UBOUND_ROWS)
-
-   ; Fill the array with data.
-    For $i = 0 To $intHeroCount - 5
-      If $arrHeroes[$i+4][1] > 0 and $arrHeroes[$i][1] < 100 Then
-		 If $doOnce = 0 Then
-			MouseWheel("up",20)
-			$doOnce = 1
-			Sleep(300)
-		 EndIf
-		 findHero($i)
-		 _GUICtrlEdit_AppendText($editctrl,"Leveling to 100 " & $arrHeroes[$i][0] & @CRLF)
-		 Local $loopOnce = 0
-		 Do
-			$result = _ImageSearchArea("images/heroes/normal/" & $arrHeroes[$i][0], 1, $left, $top, $right, $bottom, $x1, $y1, 60)
-			If $result = 1 Then
-			   WinActivate("Clicker Heroes")
-			   Sleep(100)
-			   ControlSend ("Clicker Heroes","","","{Z DOWN}")
-			   Sleep(100)
-			   $result = _ImageSearchArea("images/level25.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 120)
-
-			   If $result = 1 Then
-				  ;MouseClick("left",$x2,$y2)
-				  WinActivate("Clicker Heroes")
-				  ControlClick("Clicker Heroes","", "", "Left",1,$x2,$y2)
-				  $arrHeroes[$i][1]= $arrHeroes[$i][1] + 25
-				  ;MouseMove($x1,$y1)
-			   Else
-				  If $loopOnce = 1 Then
-					 WinActivate("Clicker Heroes")
-					 If $i > 5 Then
-						MouseWheel("up")
-					 Else
-						MouseWheel("down")
-					 EndIf
-
-					 Sleep(300)
-					 $loopOnce = 1
-				  EndIf
-			   EndIf
-			   ControlSend ("Clicker Heroes","","","{Z UP}")
-			EndIf
-		 Until ($arrHeroes[$i][1] >= 100)
-		 _GUICtrlEdit_AppendText($editctrl,"Leveling to 100 Complete for " & $arrHeroes[$i][0] & @CRLF)
-	  EndIf
-   Next
-
-   forceBuyUpgrade()
-   checkFarmState()
-EndFunc
-; Goes through giving Array Position 3 levels (or the max it can) to each of the heroes
-Func levelUpBulk()
-   ; ANY improvements would be awesome so code away
-   WinActivate("Clicker Heroes")
-
-   Local $doOnce = 0
-
-   Local $intHeroCount =  UBound($arrHeroes, $UBOUND_ROWS)
-
-   ; Fill the array with data.
-    For $i = 0 To $intHeroCount - 1
-      If $arrHeroes[$i][1] > 0  and ($arrHeroes[$i][1] < $arrHeroes[$i][3]) Then
-		 If $doOnce = 0 Then
-			MouseWheel("up",20)
-			$doOnce = 1
-			Sleep(300)
-
-		 EndIf
-		 findHero($i)
-		 _GUICtrlEdit_AppendText($editctrl,"Leveling up to Bulk " & $arrHeroes[$i][3] & "Hero: " & $arrHeroes[$i][0] & @CRLF)
-		 Local $loopOnce = 0
-		 Do
-			$result = _ImageSearchArea("images/heroes/normal/" & $arrHeroes[$i][0], 1, $left, $top, $right, $bottom, $x1, $y1, 60)
-			If $result = 1 Then
-			   WinActivate("Clicker Heroes")
-			   ControlSend ("Clicker Heroes","","","{CTRLDOWN}")
-			   Sleep(100)
-			   $result = _ImageSearchArea("images/level100.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 120)
-			   If $result = 1 Then
-				  ;MouseClick("left",$x2,$y2)
-				  WinActivate("Clicker Heroes")
-				  ControlClick("Clicker Heroes","", "", "Left",1,$x2,$y2)
-				  $arrHeroes[$i][1]= $arrHeroes[$i][1] + 100
-				  ;MouseMove($x1,$y1)
-			   Else
-				  If $loopOnce = 1 Then
-					 WinActivate("Clicker Heroes")
-					 If $i > 5 Then
-						MouseWheel("up")
-					 Else
-						MouseWheel("down")
-					 EndIf
-					 Sleep(300)
-					 $loopOnce = 1
-				  EndIf
-			   EndIf
-
-			   ControlSend ("Clicker Heroes","","","{CTRLUP}")
-			EndIf
-		 Until ($arrHeroes[$i][1] >= $arrHeroes[$i][3])
-	  EndIf
-    Next
+	  _GUICtrlEdit_AppendText($editctrl,"SearchHeroes " & $lasthero &@CRLF)
+	  $lasthero = $lasthero - 1
+	  $result = _ImageSearchArea("images/heroes/" & $arrHeroes[$lasthero][0], 1, $left, $top + 173, $left + $width / 2,  $top + 590, $x1, $y1, 60)
 
 
-   checkFarmState()
-EndFunc
+   WEnd
+   _GUICtrlEdit_AppendText($editctrl,"Hero: " & $curhero & @CRLF)
+   $curhero = $lasthero - 1
+   EndFunc
 
 ; Finds and clicks the ascend button to restart
 Func Ascend()
    _GUICtrlEdit_AppendText($editctrl,"Trying to Ascend" & @CRLF)
-   ;Move Up and Wait
-   WinActivate("Clicker Heroes")
-   MouseWheel("up",10)
-   Sleep(500)
 
+   $result =  _WaitForImageSearchArea("images/loot.png", 1, 1, $left, $top, $right, $bottom, $x1, $y1, 120)
+   If $result = 1 Then
+      _GUICtrlEdit_AppendText($editctrl,"loot" & @CRLF)
+	  clickMouseScreen($x1,$y1, "Left")
+	  $result =  _WaitForImageSearchArea("images/junk.png", 1.5, 1, $left, $top, $right, $bottom, $x1, $y1, 120)
+	  If $result = 1 Then
+		 _GUICtrlEdit_AppendText($editctrl,"Junk" & @CRLF)
+		 clickMouseScreen($x1,$y1, "Left")
+		 $result =  _WaitForImageSearchArea("images/junkYes.png", 1.5, 1, $left, $top, $right, $bottom, $x1, $y1, 120)
+		 If $result = 1 Then
+			_GUICtrlEdit_AppendText($editctrl,"JunkYes" & @CRLF)
+			clickMouseScreen($x1,$y1, "Left")
+		 EndIf
+	  EndIf
+   EndIf
+   $result =  _WaitForImageSearchArea("images/backToProgress.png", 0.5, 1, $left, $top, $right, $bottom, $x1, $y1, 120)
+   $lastHero = 0
+   If $result = 1 Then
+      _GUICtrlEdit_AppendText($editctrl,"loot" & @CRLF)
+	  clickMouseScreen($x1,$y1, "Left")
+   EndIf
+
+   ;Move Up and Wait
+   ;ascendLevelUp()
+   ;sleep(5000)
    ;Find Amen
-   findHero(19)
+   findHeroPure(19)
 
    _GUICtrlEdit_AppendText($editctrl,"Found Amen" & @CRLF)
-   MouseWheel("down")
    Sleep(500)
-   $result =  _ImageSearchArea("images/ascend.bmp", 1, $left, $top, $right, $bottom, $x1, $y1, 120)
+   $result =  _WaitForImageSearchArea("images/ascend2.png", 0.3, 1, $left, $top, $right, $bottom, $x1, $y1, 120)
    If $result = 1 Then
       _GUICtrlEdit_AppendText($editctrl,"Found Ascend" & @CRLF)
-      WinActivate("Clicker Heroes")
-	  MouseClick("left",$x1,$y1)
+	  clickMouseScreen($x1,$y1, "Left")
 	  Sleep(500)
-	  $result = _ImageSearchArea("images/ascendYes.png", 1, $left, $top, $right, $bottom, $x1, $y1, 120)
+	  $result = _WaitForImageSearchArea("images/ascendYes.png",0.3, 1, $left, $top, $right, $bottom, $x1, $y1, 120)
 	  If $result = 1 Then
-		 MouseClick("left",$x1,$y1,1,5)
+		 clickMouseScreen($x1,$y1, "Left")
 		 Sleep(3000)
 
 		 reset()
@@ -898,8 +1140,10 @@ EndFunc
 
 ;Gets New Game Going
 Func newGame()
-
-   While($arrHeroes[1][1]=0)
+   checkFarmState() ;WORKING
+$result = 0
+$result2 = 0
+   While($result2=0)
 	  ; Gets the bounding rectangle of clicker heroes every 15 ticks
 	  If Mod($timeMain,45) = 0 Then
 		 checkScreen() ;WORKING
@@ -909,53 +1153,45 @@ Func newGame()
 	  If Mod($timeMain,30) = 0 Then
 		 checkFarmState() ;WORKING
 	  EndIf
+	  ;TODO FIX THIS
+	  	  ;TODO FIX THIS
+	  $result = _WaitForImageSearchArea("images/heroes/tree.png", .4, 1, $left, $top + 173, $left + $width / 2,  $top + 590, $x1, $y1, 60)
+	  _GUICtrlEdit_AppendText($editctrl,"Found Tree!" & @CRLF)
+	  If $result = 1 Then
+		 $result2 = _WaitForImageSearchArea("images/hire2.png" ,0.5,  1, $left, $y1, $x1, $y1 + ($bottom/8), $x2, $y2, 10)
+		 _GUICtrlEdit_AppendText($editctrl,"Hire? " & $result2 & @CRLF)
+	  EndIf
+	  if $result = 0 Then
 
-	  ; Extra clicks happen at the beginning to makes sure that a hero can be found when the ticks start again
-	  WinActivate("Clicker Heroes")
-	  For $clicks = 0 To 100 Step 1
-		 ;MouseClickMouseClick("left",$left + ($right / 1.2 ), $top + (($bottom - $top) / 2))
-		 ControlClick("Clicker Heroes","", "", "Left",1,$left + ($right / 1.2 ), $top + (($bottom - $top) / 2))
-	  Next
-
+		 ; Extra clicks happen at the beginning to makes sure that a hero can be found when the ticks start again
+		 For $clicks = 0 To 4 Step 1
+			ControlClick($handle,"", "", "Left",1,$left + ($width / 1.2 ), $top + (($height) / 2))
+		 Next
+	  EndIf
 	  ;Attempt to Hire Cid
-	  $result = _ImageSearchArea("images/heroes/normal/cid.png", 1, $left, $top, $right, $bottom, $x1, $y1, 60)
-	  If $result = 1 Then
-		 $result = _ImageSearchArea("images/hire2.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 120)
-		 If $result = 1 Then
-			;MouseClick("left",$x2,$y2)
-			WinActivate("Clicker Heroes")
-			ControlClick("Clicker Heroes","", "", "Left",1,$x2,$y2)
-			$arrHeroes[0][1]= 1
-		 EndIf
-	  EndIf
-	  ;Attempt to Hire Treebeast
-	  $result = _ImageSearchArea("images/heroes/normal/tree.png", 1, $left, $top, $right, $bottom, $x1, $y1, 60)
-	  If $result = 1 Then
-		 $result = _ImageSearchArea("images/hire2.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 120)
-		 If $result = 1 Then
-			;MouseClick("left",$x2,$y2)
-			WinActivate("Clicker Heroes")
-			ControlClick("Clicker Heroes","", "", "Left",1,$x2,$y2)
-			$arrHeroes[1][1]= 1
-		 EndIf
-	  EndIf
+
+
    WEnd
+   $curhero = 1
 EndFunc
 
 Func checkHero($pos)
 
    If ($arrHeroes[$pos][1]= 0) Then
-	  $result = _ImageSearchArea("images/heroes/normal/" & $arrHeroes[$pos][0], 1, $left, $top, $right, $bottom, $x1, $y1, 60)
+	  $result = _ImageSearchArea("images/heroes/" & $arrHeroes[$pos][0], 1, $left, $top, $right, $bottom, $x1, $y1, 60)
+	  If $result = 0 Then
+		 $result = _ImageSearchArea("images/heroes/" & $arrHeroes[$pos][0], 1, $left, $top, $right, $bottom, $x1, $y1, 60)
+	  EndIf
 	  If $result = 1 Then
-		 $result = _ImageSearchArea("images/level.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 120)
+		 $result = _ImageSearchArea("images/level.png", 1, $left, $y1, $x1, $y1 + ($height/9), $x2, $y2, 120)
 		 If $result = 1 and $pos <> 25 Then
 			$arrHeroes[$pos][1]= 1
-			$curHero = $pos + 1
+			$curHero = $pos
 		 EndIf
-		 $result = _ImageSearchArea("images/level2.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 120)
+		 $result = _ImageSearchArea("images/level2.png", 1, $left, $y1, $x1, $y1 + ($height/9), $x2, $y2, 120)
 		 If $result = 1 and $pos <> 25 Then
 			$arrHeroes[$pos][1]= 1
-			$curHero = $pos + 1
+			$curHero = $pos
 		 EndIf
 	  EndIf
    EndIf
@@ -965,21 +1201,19 @@ EndFunc
 ; Loads Hero List
 Func checkHeroes()
 do
-   ;Onward and Upward!
-   WinActivate("Clicker Heroes")
-   MouseWheel("up", 30)
+
 
    If ($arrHeroes[0][1]= 0) Then
-	  $result = _ImageSearchArea("images/heroes/normal/cid.png", 1, $left, $top, $right, $bottom, $x1, $y1, 60)
+	  $result = _ImageSearchArea("images/heroes/cid.png", 1, $left, $top, $left + $width / 2,  $bottom, $x1, $y1, 60)
 	  If $result = 1 Then
 		 _GUICtrlEdit_AppendText($editctrl,"Found Cid Image" & @CRLF)
-		 $result = _ImageSearchArea("images/Hire.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 120)
+		 $result = _ImageSearchArea("images/Hire.png", 1, $left, $y1, $x1, $y1 + ($height/9), $x2, $y2, 120)
 		 If $result = 1 Then
 			_GUICtrlEdit_AppendText($editctrl,"Found Cid Hire Image" & @CRLF)
 			newGame()
 		 Else
 			_GUICtrlEdit_AppendText($editctrl,"Didnt find Cid Hire Image" & @CRLF)
-			$result = _ImageSearchArea("images/hire2.png", 1, $left, $y1, $x1, $y1 + ($bottom/9), $x2, $y2, 120)
+			$result = _ImageSearchArea("images/hire2.png", 1, $left, $y1, $x1, $y1 + ($height/9), $x2, $y2, 120)
 			If $result = 1 Then
 			   _GUICtrlEdit_AppendText($editctrl,"Found Cid Hire2 Image" & @CRLF)
 			   newGame()
@@ -992,193 +1226,6 @@ do
 		 _GUICtrlEdit_AppendText($editctrl,"Cant find cid.png on the screen" & @CRLF)
 	  EndIf
    EndIf
-   ;If we dont have Cid its a New Game so Stop!
-   If ($arrHeroes[0][1]= 0) Then
-	  Msgbox(0,"","Cant find Cid, need to replace image.")
-	  Exit
-   EndIf
-
-   ;Tree
-   checkHero(1)
-
-   If ($arrHeroes[1][1]= 0) Then
-	  ExitLoop
-   EndIf
-   ;Ivan
-   checkHero(2)
-
-   If ($arrHeroes[2][1]= 0) Then
-	  ExitLoop
-   EndIf
-
-   ;Brittany
-   checkHero(3)
-   If ($arrHeroes[3][1]= 0) Then
-	  ExitLoop
-   EndIf
-
-   ;Fisherman
-   findHero(4)
-   checkHero(4)
-   If ($arrHeroes[4][1]= 0) Then
-	  ExitLoop
-   EndIf
-
-   ;Betty
-   findHero(5)
-   checkHero(5)
-   If ($arrHeroes[5][1]= 0) Then
-	  ExitLoop
-   EndIf
-
-   ;Samurai
-   findHero(6)
-   checkHero(6)
-   If ($arrHeroes[6][1]= 0) Then
-	  ExitLoop
-   EndIf
-
-   ;Leon
-   findHero(7)
-   checkHero(7)
-   If ($arrHeroes[7][1]= 0) Then
-	  ExitLoop
-   EndIf
-
-   ;Forest
-   findHero(8)
-   checkHero(8)
-   If ($arrHeroes[8][1]= 0) Then
-	  ExitLoop
-   EndIf
-
-   ;Alexa
-   findHero(9)
-   checkHero(9)
-   If ($arrHeroes[9][1]= 0) Then
-	  ExitLoop
-   EndIf
-
-   ;Natalia
-   findHero(10)
-   checkHero(10)
-   If ($arrHeroes[10][1]= 0) Then
-	  ExitLoop
-   EndIf
-
-   ;Mercedes
-   findHero(11)
-   checkHero(11)
-   If ($arrHeroes[11][1]= 0) Then
-	  ExitLoop
-   EndIf
-
-   ;Bobby
-   findHero(12)
-   checkHero(12)
-   If ($arrHeroes[12][1]= 0) Then
-	  ExitLoop
-   EndIf
-
-   ;Fire
-   findHero(13)
-   checkHero(13)
-   If ($arrHeroes[13][1]= 0) Then
-	  ExitLoop
-   EndIf
-
-   ;George
-   findHero(14)
-   checkHero(14)
-   If ($arrHeroes[14][1]= 0) Then
-	  ExitLoop
-   EndIf
-
-   ;King
-   findHero(15)
-   checkHero(15)
-   If ($arrHeroes[15][1]= 0) Then
-	  ExitLoop
-   EndIf
-
-   ;Jerator
-   findHero(16)
-   checkHero(16)
-   If ($arrHeroes[16][1]= 0) Then
-	  ExitLoop
-   EndIf
-
-   ;Abaddon
-   findHero(17)
-   checkHero(17)
-   If ($arrHeroes[17][1]= 0) Then
-	  ExitLoop
-   EndIf
-
-   ;Ma Zhu
-   findHero(18)
-   checkHero(18)
-   If ($arrHeroes[18][1]= 0) Then
-	  ExitLoop
-   EndIf
-
-   ;Amenhotep
-   findHero(19)
-   checkHero(19)
-   If ($arrHeroes[19][1]= 0) Then
-	  ExitLoop
-   EndIf
-
-   ;Beastlord
-   findHero(20)
-   checkHero(20)
-   If ($arrHeroes[20][1]= 0) Then
-	  ExitLoop
-   EndIf
-
-   ;Athena
-   findHero(21)
-   checkHero(21)
-   If ($arrHeroes[21][1]= 0) Then
-	  ExitLoop
-   EndIf
-
-   ;Aphrodite
-   findHero(22)
-   checkHero(22)
-   If ($arrHeroes[22][1]= 0) Then
-	  ExitLoop
-   EndIf
-
-   ;Shinatobe
-   findHero(23)
-   checkHero(23)
-   If ($arrHeroes[23][1]= 0) Then
-	  ExitLoop
-   EndIf
-
-   ;Grant
-   findHero(24)
-   checkHero(24)
-   If ($arrHeroes[24][1]= 0) Then
-	  ExitLoop
-   EndIf
-
-   ;FrostLeaf
-   findHero(25)
-   checkHero(25)
-
-   #comments-start
-
-   $arrHeroes[23].HeroName="SHINATOBE"
-   $arrHeroes[23].HeroLevel=0
-
-   $arrHeroes[24].HeroName="GRANT"
-   $arrHeroes[24].HeroLevel=0
-
-   $arrHeroes[25].HeroName="FROSTLEAF"
-   $arrHeroes[25].HeroLevel=0
-    #comments-end
 until 1
 EndFunc
 
@@ -1193,12 +1240,15 @@ EndFunc
 Func pause()
    ControlSend ("Clicker Heroes","","","{CTRLUP}")
    While ($i = 0)
-	  Sleep(100)
+	  Sleep(30)
    WEnd
 EndFunc
 
 Func end()
+   Send("{Z UP}")
+   Send("{SHIFTUP}")
    Send("{CTRLUP}")
+   _MemoryClose($ID)
    Exit
 EndFunc
 
