@@ -80,6 +80,10 @@ Global $upX = 0
 Global $upY = 0
 ;Change this if you want to click every cycle, still working on exits for certain things
 Global $idle = 1
+Global $lastClick = TimerInit()
+Global $lastAscend = TimerInit()
+Global $AscentionMinutes = 55
+Global $timedAscention = 1
 
 ; Need to check these
 $x1=0
@@ -121,7 +125,7 @@ GUISetState(@SW_SHOW)
    ;Image,		CurrentLevel, 	BaseCost, LevelsToAdd, BaseDamage, 		Gilds, 		PersonalUpgrade, DPSupgradeHolder
 Global $arrHeroes[35][8]= _
 [ _
-   ["cid.png",			0,		5,			0,			0,					0,			210			,0], _
+   ["cid.png",			0,		5,			0,			1,					0,			210			,0], _
    ["tree.png",			0,		50,			0,			5,					0,			20			,0], _
    ["ivan.png",			0,		250,		0,			22,					0,			20			,0], _
    ["brittany.png",		0,		1e3,		0,			74,					0,			20			,0], _
@@ -223,6 +227,11 @@ EndIf
 $loop = 0
 $loopLoop = 0
 while (true)
+    $result = checkTwoImages("images/heroes/normal/" & $lookFor, "images/heroes/gild/" & $lookFor, 0, $left, $top + 173, $left + $width / 2,  $top + 590, $x1, $y1, 60)
+   if($result = 1) Then
+	  ;_GUICtrlEdit_AppendText($editctrl2,"LoopDone:" & @CRLF)
+	  Return
+   EndIf
 
    if $lastHero > $x Then
 	  clickMouseScreen($upX, $upY, "Left")
@@ -230,11 +239,7 @@ while (true)
 	  clickMouseScreen($downX, $downY, "Left")
    EndIf
    sleep(50)
-   $result = checkTwoImages("images/heroes/normal/" & $lookFor, "images/heroes/gild/" & $lookFor, 0, $left, $top + 173, $left + $width / 2,  $top + 590, $x1, $y1, 60)
-   if($result = 1) Then
-	  ;_GUICtrlEdit_AppendText($editctrl2,"LoopDone:" & @CRLF)
-	  Return
-   EndIf
+
    if($loop > 50) Then
 	  clickMouseScreen($downX, $downY - 35, "Left")
 	  $lastHero = $curHero
@@ -257,17 +262,17 @@ Func setHero()
    ;Cid
    $arrHeroes[0][1]= 0
    ;Tree
-   $arrHeroes[1][1]= 150
+   $arrHeroes[1][1]= 0
    ;Ivan
-   $arrHeroes[2][1]= 150
+   $arrHeroes[2][1]= 34
    ;Brittany
-   $arrHeroes[3][1]= 284
+   $arrHeroes[3][1]= 30
    ;Fisherman
-   $arrHeroes[4][1]= 0
+   $arrHeroes[4][1]= 1
    ;Betty
    $arrHeroes[5][1]= 0
    ;Samurai
-   $arrHeroes[6][1]= 68
+   $arrHeroes[6][1]= 83
    ;Leon
    $arrHeroes[7][1]= 0
    ;Forest
@@ -402,22 +407,29 @@ Func runBot()
 
 
 	  ; Gets the bounding rectangle of clicker heroes every 15 ticks
-	  If Mod($timeMain,15) = 0 Then
+	  If Mod($timeMain,15000) = 0 Then
 		 checkScreen() ;
 	  EndIf
 
-	  If Mod($timeMain,15) = 0 Then
+	  If Mod($timeMain,400) = 0 Then
 		 ;ascends if the critera are met
 		 ascend()
+	  EndIf
+	  if($timedAscention = 4) Then
+		 if( TimerDiff($lastAscend) > $AscentionMinutes*60*1000 ) Then
+			$ascend = 1;
+		 EndIf
 	  EndIf
 
 	  ;clicks the screen and DPSSSSES
 	  If($idle <> 1) Then
-
+		 $lastClick = TimerInit()
+		 ControlClick($handle,"", "", "Left",1,$left + ($width / 1.2 ), $top + (($height) / 2))
+		 Sleep(30)
 	  EndIf
 
 	  ; Checks the farm button state every 60 ticks
-	  If Mod($timeMain,4) = 0 Then
+	  If Mod($timeMain,30) = 0 Then
 		 if($lastProgressToggle + 50000 * 1.5 < _Date_Time_GetTickCount() Or $lastProgressToggle > _Date_Time_GetTickCount()) Then
 
 			$thisRunStatus = checkFarmState() ;
@@ -439,12 +451,12 @@ Func runBot()
 
 
 	  ; Checks for the upgrade box every 30 ticks
-	  If Mod($timeMain,120) = 0 Then
+	  If Mod($timeMain,200) = 0 Then
 		 clickUpgadeBox() ;
 	  EndIf
 
 	  ; Find the fish!
-	  If Mod($timeMain,6) = 0 Then
+	  If Mod($timeMain,30) = 0 Then
 		 findFish()
 	  EndIf
 
@@ -549,7 +561,12 @@ Func LeveUPXAmount()
 
    if $value >= 1 Then
    for $loop = 1 To $value
-
+   if($idle <> 1) Then
+	  $dif = TimerDiff($lastClick)
+	  if($dif >= 8000) Then
+		 return $value
+	  EndIf
+   EndIf
    clickMouseScreen($x2, $y2, "Left")
    $value = $value - 1
    $arrHeroes[$lastHero][1] = $arrHeroes[$lastHero][1] + 1
@@ -584,7 +601,7 @@ EndFunc
 
 Func LevelUpAlgorthim()
 
-if $nexthero = 0 Then
+ if $nexthero = -1 Then
    getGold()
    if($gold < $mostGold) Then
 	  Return
@@ -664,6 +681,7 @@ $checkhero = $checkhero -1
 WEnd
 if($hero <> -1)Then
 $arrHeroes[$hero][3] = $addlevels
+$nexthero = $hero
 EndIf
 EndFunc
 
@@ -707,7 +725,7 @@ Func getGeometricSum($factor, $base, $firstexponent, $second)
  Func verify150()
 	$flag = 0
 	$goldestimate = $gold
-	for $var = 1 To $curHero + 1
+	for $var = 0 To $curHero + 1
 	   if($arrHeroes[$var][1] < 150 And $goldestimate > 0) Then
 		 $currentestimate = CalcHeroLevelsForGold($var, $goldestimate)
 		 if($currentestimate + $arrHeroes[$var][1] > 150) Then
@@ -723,6 +741,7 @@ Func getGeometricSum($factor, $base, $firstexponent, $second)
 			$goldUsed = CalcHeroGoldCost($var, $currentestimate)
 			$arrHeroes[$var][3] = $currentestimate
 			$goldestimate= $goldestimate - $goldUsed
+			$nexthero = $var
 			_GUICtrlEdit_AppendText($editctrl2,"Level to 150: " & $arrHeroes[$var][1] & @CRLF)
 			$upgradeCounter = 4
 			return 1
@@ -895,6 +914,7 @@ $result2 = 0
 
 		 ; Extra clicks happen at the beginning to makes sure that a hero can be found when the ticks start again
 		 For $clicks = 0 To 4 Step 1
+			$lastClick = TimerInit()
 			ControlClick($handle,"", "", "Left",1,$left + ($width / 1.2 ), $top + (($height) / 2))
 		 Next
 	  EndIf
