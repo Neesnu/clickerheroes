@@ -72,7 +72,7 @@ Global $timeToKillBoss = 50
 Global $foundFish = 0
 ;Save this for a restart?
 Global $waitFish = 1
-Global $ascend = 1
+Global $ascend = 0
 ;Positions for the up down arrows for the hero pane
 Global $downX = 0
 Global $downY = 0
@@ -167,8 +167,6 @@ Global $hTimer = TimerInit();
 ;showAll()
 setHero()
 Func scrollTo($x, $lookFor)
-   getScrollPos()
-
    ControlClick($handle,"", "", "Left",1,461, 387)
 
 if $upX = 0 And $upY = 0 Then
@@ -232,7 +230,7 @@ while (true)
 	  clickMouseScreen($downX, $downY, "Left")
    EndIf
    sleep(50)
-   $result = _ImageSearchArea($lookFor, 1, $left, $top + 173, $left + $width / 2,  $top + 590, $x1, $y1, 60)
+   $result = checkTwoImages("images/heroes/normal/" & $lookFor, "images/heroes/gild/" & $lookFor, 0, $left, $top + 173, $left + $width / 2,  $top + 590, $x1, $y1, 60)
    if($result = 1) Then
 	  ;_GUICtrlEdit_AppendText($editctrl2,"LoopDone:" & @CRLF)
 	  Return
@@ -263,51 +261,51 @@ Func setHero()
    ;Ivan
    $arrHeroes[2][1]= 150
    ;Brittany
-   $arrHeroes[3][1]= 150
+   $arrHeroes[3][1]= 284
    ;Fisherman
-   $arrHeroes[4][1]= 1077
+   $arrHeroes[4][1]= 0
    ;Betty
-   $arrHeroes[5][1]= 150
+   $arrHeroes[5][1]= 0
    ;Samurai
-   $arrHeroes[6][1]= 1025
+   $arrHeroes[6][1]= 68
    ;Leon
-   $arrHeroes[7][1]= 150
+   $arrHeroes[7][1]= 0
    ;Forest
-   $arrHeroes[8][1]= 1054
+   $arrHeroes[8][1]= 0
    ;Alexa
-   $arrHeroes[9][1]= 150
+   $arrHeroes[9][1]= 0
    ;Natalia
-   $arrHeroes[10][1]= 150
+   $arrHeroes[10][1]= 0
    ;Mercedes
-   $arrHeroes[11][1]= 150
+   $arrHeroes[11][1]= 0
    ;Bobby
-   $arrHeroes[12][1]= 150
+   $arrHeroes[12][1]= 0
    ;Fire
-   $arrHeroes[13][1]= 150
+   $arrHeroes[13][1]= 0
    ;George
-   $arrHeroes[14][1]= 150
+   $arrHeroes[14][1]= 0
    ;King
-   $arrHeroes[15][1]= 150
+   $arrHeroes[15][1]= 0
    ;Jerator
-   $arrHeroes[16][1]= 150
+   $arrHeroes[16][1]= 0
    ;Abaddon
-   $arrHeroes[17][1]= 150
+   $arrHeroes[17][1]= 0
    ;Ma Zhu
-   $arrHeroes[18][1]= 150
+   $arrHeroes[18][1]= 0
    ;Amenhotep
-   $arrHeroes[19][1]= 150
+   $arrHeroes[19][1]= 0
    ;Beastlord
-   $arrHeroes[20][1]= 150
+   $arrHeroes[20][1]= 0
    ;Athena
-   $arrHeroes[21][1]= 150
+   $arrHeroes[21][1]= 0
    ;Aphrodite
-   $arrHeroes[22][1]= 150
+   $arrHeroes[22][1]= 0
    ;Shinatobe
-   $arrHeroes[23][1]= 150
+   $arrHeroes[23][1]= 0
    ;Grant
-   $arrHeroes[24][1]= 150
+   $arrHeroes[24][1]= 0
    ;FrostLeaf
-   $arrHeroes[25][1]= 150
+   $arrHeroes[25][1]= 0
    ;Good Measure
    $arrHeroes[26][1]= 0
 
@@ -515,14 +513,18 @@ EndFunc
 
 ;Finds the fish
 Func findFish()
+   if($foundFish = 1)Then
+	  Return
+   EndIf
    $result = _ImageSearchArea("images/fish.png", 1, $left, $top, $right, $bottom, $x1, $y1, 70)
 	  If $result = 1 Then
 		 if($waitFish = 1) Then
 			$foundFish = 1
+			_GUICtrlEdit_AppendText($editctrl2,"Fish Found!" & @CRLF)
 		 Else
 			clickMouseScreen($x1,$y1, "Left")
+			_GUICtrlEdit_AppendText($editctrl2,"Clicked Fish!" & @CRLF)
 		 EndIf
-		 _GUICtrlEdit_AppendText($editctrl2,"Fish Found!" & @CRLF)
 	  EndIf
    EndFunc
 ;Clicks the fish
@@ -530,7 +532,7 @@ Func clickFish()
    $result = _ImageSearchArea("images/fish.png", 1, $left, $top, $right, $bottom, $x1, $y1, 70)
 	  If $result = 1 Then
 		 clickMouseScreen($x1,$y1, "Left")
-		 _GUICtrlEdit_AppendText($editctrl2,"Fish Found!" & @CRLF)
+		 _GUICtrlEdit_AppendText($editctrl2,"Clicked Fish!" & @CRLF)
 	  EndIf
 EndFunc
 
@@ -560,6 +562,17 @@ EndIf
 
    return $value
 EndFunc
+Func checkCurHero()
+   while($gold > $arrHeroes[$curhero][2])
+	   $curhero = $curhero+1
+	   if $curhero > 34 Then
+		  $curhero = 34
+		  Return
+	   EndIf
+	   _GUICtrlEdit_AppendText($editctrl2,"Current Hero = " &$curhero& @CRLF)
+	WEnd
+
+ EndFunc
 Func TraceOutline($l, $t, $r, $b, $string = "")
    _GUICtrlEdit_AppendText($editctrl,"Tracing: " & $string & @CRLF)
    MouseMove($l, $t)
@@ -585,7 +598,6 @@ EndIf
 if $arrHeroes[$nexthero][3] > 0 Then
    $result = findHero($nexthero)
    if $result = 1 then
-	  _GUICtrlEdit_AppendText($editctrl,"Send To LevelUp" &  @CRLF)
 	  LeveUPXAmount()
    EndIf
 EndIf
@@ -642,7 +654,6 @@ While($checkhero >= 1)
    if($cost <> 0) Then
 	  $eff = $newDps/$cost
    EndIf
-   _GUICtrlEdit_AppendText($editctrl,"Hero: " & $arrHeroes[$checkhero][0] & @TAB & " $eff: " & $eff & @CRLF)
    if($eff > $effectiveness) Then
 	  $addlevels = $currentestimate
 	  $effectiveness = $eff
@@ -700,25 +711,23 @@ Func getGeometricSum($factor, $base, $firstexponent, $second)
 	   if($arrHeroes[$var][1] < 150 And $goldestimate > 0) Then
 		 $currentestimate = CalcHeroLevelsForGold($var, $goldestimate)
 		 if($currentestimate + $arrHeroes[$var][1] > 150) Then
-		 $tempvalue = Mod ( $currentestimate + $arrHeroes[$var][1], 150 )
-		 $reduce = Floor ( ($currentestimate + $arrHeroes[$var][1])/ 150 )
-		 if($reduce > 1) Then
-			$currentestimate = 150 - $arrHeroes[$var][1]
+			$tempvalue = Mod ( $currentestimate + $arrHeroes[$var][1], 150 )
+			$reduce = Floor ( ($currentestimate + $arrHeroes[$var][1])/ 150 )
+			if($reduce > 1) Then
+				  $currentestimate = 150 - $arrHeroes[$var][1]
 
-		 Else
-			$currentestimate = $currentestimate - $tempvalue
+			Else
+				  $currentestimate = $currentestimate - $tempvalue
+			EndIf
+
+			$goldUsed = CalcHeroGoldCost($var, $currentestimate)
+			$arrHeroes[$var][3] = $currentestimate
+			$goldestimate= $goldestimate - $goldUsed
+			_GUICtrlEdit_AppendText($editctrl2,"Level to 150: " & $arrHeroes[$var][1] & @CRLF)
+			$upgradeCounter = 4
+			return 1
 		 EndIf
-
-		 $goldUsed = CalcHeroGoldCost($var, $currentestimate)
-		 $arrHeroes[$var][3] = $currentestimate
-		 $goldestimate= $goldestimate - $goldUsed
-		 _GUICtrlEdit_AppendText($editctrl2,"Level to 150: " & $arrHeroes[$var][1] & @CRLF)
-		 $upgradeCounter = 4
-		 return 1
 	  EndIf
-	  EndIf
-
-
    Next
    return 0
 EndFunc
@@ -758,7 +767,7 @@ Func findHero($pos)
 
    While ($loopOverall < 5)
 	  ;normal heroes will probably be found more
-	  $result = checkTwoImages("images/heroes/normal/" & $arrHeroes[$pos][0], "images/heroes/ascend/" & $arrHeroes[$pos][0], $waitTime, $left, $top + 173, $left + $width / 2,  $top + 590, $x1, $y1, 60)
+	  $result = checkTwoImages("images/heroes/normal/" & $arrHeroes[$pos][0], "images/heroes/gild/" & $arrHeroes[$pos][0], $waitTime, $left, $top + 173, $left + $width / 2,  $top + 590, $x1, $y1, 60)
 	  If $result = 1 Then
 		 ;_GUICtrlEdit_AppendText($editctrl,"Found Hero " & $arrHeroes[$pos][0] &@CRLF)
 		 $HeroX = $x1
@@ -766,7 +775,7 @@ Func findHero($pos)
 		 $lastHero = $pos
 		 Return 1
 	  Else
-		 scrollTo($pos, "images/heroes/" & $arrHeroes[$pos][0])
+		 scrollTo($pos, $arrHeroes[$pos][0])
 
 		 Sleep( 300 )
 		 $loopOverall = $loopOverall + 1
@@ -878,7 +887,7 @@ $result2 = 0
 	  EndIf
 
 	  getGold()
-	  if($gold > 50 * ( 1 - $dogcogLevel * .02))
+	  if($gold > 50 * ( 1 - $dogcogLevel * .02)) then
 		 result = 1
 	  EndIf
 
